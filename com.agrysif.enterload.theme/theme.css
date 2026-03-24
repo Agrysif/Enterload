@@ -1,0 +1,353 @@
+/* ============================================================
+   Enterload Dark Theme for TeamSpeak 5
+   Modern · Minimalistic · Discord-inspired
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   TeamSpeak 5 CSS variable overrides
+   These are the real internal variables TS5 reads.
+   ---------------------------------------------------------- */
+:root,
+::after,
+::before {
+    /* Accent colours */
+    --et-accent-light:        #7c6af7;
+    --et-accent-dark:         #5a4fd1;
+    --et-accent-light-t:      rgba(124, 106, 247, 0.5);
+    --et-accent-dark-t:       rgba(90, 79, 209, 0.5);
+    --et-accent-pulse-start:  rgba(124, 106, 247, 0.6);
+    --et-text-on-accent:      #1a1b1e;
+    --et-spoiler-bg:          #acadb1;
+
+    /* Dark scale */
+    --et-dark1: #0e0f11;
+    --et-dark2: #14151a;
+    --et-dark3: #1a1b1e;
+    --et-dark4: #1e1f23;
+    --et-dark5: #212226;
+    --et-dark6: #2a2b30;
+    --et-dark7: #32333a;
+
+    /* ---- TS5 tint (accent) ---- */
+    --tsv-tint:              var(--et-accent-light) !important;
+    --tsv-tint2:             var(--et-accent-light) !important;
+    --default-tsv-tint:      var(--et-accent-light) !important;
+    --ts-menu-action-color:  var(--et-accent-dark)  !important;
+
+    /* ---- Main backgrounds ---- */
+    --tsv-bg:                  var(--et-dark6) !important;
+    --tsv-shaded-bg:           var(--et-dark3) !important;
+    --tsv-contrast-bg:         var(--et-dark1) !important;
+    --tsv-contrast-strong-bg:  var(--et-dark1) !important;
+    --tsv-deviant-bg:          var(--et-dark5) !important;
+    --strong-bg:               var(--et-dark4) !important;
+
+    /* ---- Headers ---- */
+    --tsv-header-bg:                    var(--et-dark4) !important;
+    --ts-new-header-bg:                 var(--et-dark3) !important;
+    --tsv-view-header-bg:               linear-gradient(45deg, var(--et-dark2), var(--et-dark5)) !important;
+    --tsv-view-header-gradient-start:   var(--et-dark5) !important;
+    --tsv-server-header-gradient-start: linear-gradient(45deg, var(--et-dark3) 0%, var(--et-dark5) 100%) !important;
+    --tsv-server-header-gradient-end:   var(--et-dark5) !important;
+    --tsv-highlight-header-bg:          linear-gradient(to right, var(--et-accent-dark-t) 0, var(--et-dark5) 100%) !important;
+    --tsv-unrelated-activity-header-bg: none !important;
+
+    /* ---- Sidebar ---- */
+    --tsv-servertree-bg-gradient:       linear-gradient(25deg, var(--et-dark5) 0%, var(--et-dark6) 60%) !important;
+    --tsv-side-bar-bg-gradient-bottom:  var(--et-dark5) !important;
+
+    /* ---- Context menu ---- */
+    --ts-context-menu-background:     var(--et-dark2) !important;
+    --tsv-context-menu-border:        var(--et-dark2) !important;
+    --tsv-context-menu-item-selection: var(--et-dark7) !important;
+
+    /* ---- Cards ---- */
+    --card-background:       var(--et-dark5) !important;
+    --card-hover-background: var(--et-dark7) !important;
+    --card-outline:          var(--et-accent-light) !important;
+
+    /* ---- Chat messages ---- */
+    --tsv-chat-remote-bg:          var(--et-dark4) !important;
+    --tsv-chat-self-bg:            var(--et-dark4) !important;
+    --tsv-chat-deleted-bg:         var(--et-dark4) !important;
+    --tsv-chat-deleted-font-color: #da3250 !important;
+    --tsv-chat-link-color:         var(--et-accent-light) !important;
+    --ts-chat-system-highlight-text-color: var(--et-accent-light) !important;
+    --ts-chat-system-message-bg:   var(--tsv-contrast-bg) !important;
+    --ts-chat-system-message-color: rgba(223,223,223,0.05) !important;
+    --tsv-chat-widget-bg:          var(--et-dark5) !important;
+    --tsv-preview-bg:              var(--et-dark7) !important;
+
+    /* ---- Text ---- */
+    --tsv-font-color:          #e3e5e8 !important;
+    --tsv-font-subtitle-color: #9ea3ad !important;
+    --ts-third-font-color:     #fdfdfd !important;
+
+    /* ---- Controls ---- */
+    --tsv-separation-border:           none !important;
+    --tsv-control-handle-active-bg:    var(--et-accent-light) !important;
+    --tsv-button-bg:                   var(--et-accent-dark) !important;
+    --tsv-button-hover-bg:             var(--et-accent-light) !important;
+    --tsv-button-filled-bg:            linear-gradient(45deg, var(--et-accent-light), var(--et-accent-dark)) !important;
+    --tsv-button-filled-disabled-bg:   linear-gradient(45deg, var(--et-accent-dark-t), var(--et-dark7)) !important;
+    --hero-button-background:          #e3e5e8 !important;
+    --tsv-highlight-color:             var(--et-accent-light) !important;
+    --ts-drag-border:                  var(--et-accent-light) !important;
+    --ts-select-arrow-color:           var(--et-accent-light) !important;
+    --highlight-outline-color:         var(--et-accent-dark-t) !important;
+
+    /* ---- Voice client gradients ---- */
+    --tsv-client-silent--gradient-start: var(--tsv-bg) !important;
+    --tsv-client-silent--gradient-stop:  var(--tsv-contrast-bg) !important;
+    --tsv-client-talking--gradient-start: var(--et-accent-light) !important;
+    --tsv-client-talking--gradient-stop:  var(--et-accent-dark) !important;
+
+    /* ---- Misc ---- */
+    --tsv-slider-track-bg:              var(--et-dark2) !important;
+    --ts-tree-badges-bg:                var(--et-dark7) !important;
+    --presence-separator-presence:      var(--et-dark7) !important;
+    --horizontal-separator-color:       var(--et-dark7) !important;
+
+    /* ---- Scrollbar ---- */
+    --tsv-scrollbar-bg:            var(--et-dark1) !important;
+    --tsv-scrollbar-chunks--bg-1:  var(--et-accent-light) !important;
+    --tsv-scrollbar-chunks--bg-2:  var(--et-accent-dark-t) !important;
+    --et-scrollbar-width: 6px;
+}
+
+
+/* ----------------------------------------------------------
+   Scrollbar (webkit)
+   ---------------------------------------------------------- */
+
+::-webkit-scrollbar {
+    width:  var(--et-scrollbar-width) !important;
+    height: 0 !important;
+}
+
+::-webkit-scrollbar-track {
+    background: inherit;
+}
+
+::-webkit-scrollbar-thumb,
+.ts-chunk-scroll-track__thumb {
+    background-color: var(--et-accent-light) !important;
+}
+
+
+/* ----------------------------------------------------------
+   Server tree / channel background
+   ---------------------------------------------------------- */
+
+.ts-server-tree-item-background-no-image {
+    background: linear-gradient(to right, var(--et-dark3) 50%, var(--et-dark4) 100%) !important;
+}
+
+.ts-server-tree-item-leaf.spacer .ts-server-tree-item-background-no-image,
+.ts-server-tree-item-leaf.spacer .tsv-item-highlight {
+    background: linear-gradient(-115deg, var(--et-dark7), var(--et-accent-dark-t)) !important;
+}
+
+.tsv-sidebar .tsv-body-background {
+    background: linear-gradient(to bottom, var(--ts-new-header-bg), var(--tsv-side-bar-bg-gradient-bottom)) !important;
+}
+
+.tsv-footer::before {
+    border-top-color: var(--et-dark7) !important;
+}
+
+
+/* ----------------------------------------------------------
+   Dashboard / Discovery
+   ---------------------------------------------------------- */
+
+.ts-discovery-header.ts-default-background {
+    background: linear-gradient(45deg, var(--tsv-server-header-gradient-start) 0%, var(--tsv-server-header-gradient-end) 100%) !important;
+}
+
+.ts-discovery-header.ts-default-background:before {
+    -webkit-mask: none !important;
+}
+
+.tsv-dashboard-servers__content,
+.tsv-dashboard-chats,
+.tsv-dashboard-news,
+.ts-discovery-wrapper {
+    background: linear-gradient(45deg, var(--tsv-server-header-gradient-end) 0%, var(--strong-bg) 100%) !important;
+}
+
+
+/* ----------------------------------------------------------
+   Server header outline
+   ---------------------------------------------------------- */
+
+.ts-server-header .tsv-view-banner.tsv-active .tsv-view-background::after,
+.ts-account-settings-view .tsv-view-banner.tsv-active .tsv-view-background::after {
+    border: none !important;
+}
+
+
+/* ----------------------------------------------------------
+   Chat input
+   ---------------------------------------------------------- */
+
+.ts-chat-input-container {
+    border:           1px solid var(--et-dark6) !important;
+    background-color: var(--et-dark7) !important;
+}
+
+.ts-chat-input-container.focus,
+.ts-chat-input-container:hover {
+    border:           1px solid var(--et-accent-light) !important;
+    background-color: var(--et-dark7) !important;
+}
+
+
+/* ----------------------------------------------------------
+   Chat bubbles
+   ---------------------------------------------------------- */
+
+.ts-chat-room-event-detailed:not(.ts-currently-referencing, .apparently-people-like-huge-faces)
+    .ts-chat-room-event-bubble {
+    background: var(--tsv-chat-self-bg) !important;
+}
+
+.ts-chat-room-event-detailed:not(.ts-currently-referencing, .apparently-people-like-huge-faces)
+    .ts-chat-room-event-bubble::before {
+    border-right: 6px solid var(--tsv-chat-self-bg) !important;
+}
+
+.ts-chat-room-event-detailed .ts-chat-room-event-bubble.self-mention {
+    background: var(--et-accent-light) !important;
+    color:      var(--et-text-on-accent) !important;
+}
+
+.ts-chat-room-event-detailed .ts-chat-room-event-bubble.self-mention::before {
+    border-right: 6px solid var(--et-accent-light) !important;
+}
+
+.ts-parsed-text-content .spoiler:not([visible]) {
+    background-color: var(--et-spoiler-bg) !important;
+}
+
+
+/* ----------------------------------------------------------
+   Reply / highlight
+   ---------------------------------------------------------- */
+
+.ts-currently-referencing .ts-chat-room-event-bubble {
+    background: var(--et-accent-light) !important;
+    --tsv-chat-link-color: #e4e4e4 !important;
+}
+
+.ts-currently-referencing .ts-chat-room-event-bubble::before {
+    border-right: 6px solid var(--et-accent-light) !important;
+}
+
+.ts-chat-room-event-bubble.self-mention {
+    --tsv-chat-link-color: #e4e4e4 !important;
+}
+
+
+/* ----------------------------------------------------------
+   Toggle switch
+   ---------------------------------------------------------- */
+
+.ts-toggle.checked {
+    border: 1px solid var(--et-accent-light) !important;
+}
+
+.ts-toggle-inner.checked:after {
+    background: var(--et-accent-light) !important;
+}
+
+
+/* ----------------------------------------------------------
+   Drag & drop
+   ---------------------------------------------------------- */
+
+.ts-dnd-drag-into:after {
+    background-color: var(--et-accent-dark-t) !important;
+    border:           1px solid var(--et-accent-light) !important;
+}
+
+
+/* ----------------------------------------------------------
+   Sliders
+   ---------------------------------------------------------- */
+
+.ts-slider-segment-value.ts-slider-segment-value-on {
+    background: linear-gradient(90deg, var(--et-accent-light), var(--et-accent-light)) border-box !important;
+}
+
+.ts-slider-segment-value.ts-slider-segment-value-off {
+    background: linear-gradient(90deg, var(--et-accent-dark), var(--et-accent-dark)) border-box !important;
+}
+
+
+/* ----------------------------------------------------------
+   Image attachments (scale to fit)
+   ---------------------------------------------------------- */
+
+.ts-chat-message-attachment-myts-file.isImage {
+    height: unset !important;
+}
+
+.ts-chat-message-attachment .ts-chat-message-attachment-inner .ts-chat-message-attachment-image {
+    height: unset !important;
+}
+
+
+/* ----------------------------------------------------------
+   Attachment borders
+   ---------------------------------------------------------- */
+
+.ts-rendered-message:not(.ts-currently-referencing, .ts-chat-room-event-selected)
+    .ts-chat-message-attachment
+    .ts-chat-message-attachment-inner {
+    border-color: var(--tsv-contrast-bg) !important;
+}
+
+
+/* ----------------------------------------------------------
+   Hero / CTA button pulse
+   ---------------------------------------------------------- */
+
+.tsv-button-hero {
+    animation:  pulse 2s infinite !important;
+    box-shadow: 0 0 0 0 transparent !important;
+}
+
+@keyframes pulse {
+    0%   { box-shadow: 0 0 0 0    var(--et-accent-pulse-start) !important; }
+    70%  { box-shadow: 0 0 0 10px var(--et-accent-light-t)     !important; }
+    100% { box-shadow: 0 0 0 0    transparent                  !important; }
+}
+
+
+/* ----------------------------------------------------------
+   Link colour in event details
+   ---------------------------------------------------------- */
+
+.ts-chat-room-event-detailed .ts-chat-room-event-bubble a {
+    color: var(--et-accent-dark) !important;
+}
+
+
+/* ----------------------------------------------------------
+   Server event log accent
+   ---------------------------------------------------------- */
+
+.ts-server-events-list li.ts-event-cyan,
+.ts-server-logs-list li.ts-event-cyan {
+    border-left-color: var(--default-tsv-tint) !important;
+}
+
+
+/* ----------------------------------------------------------
+   Bold text strength
+   ---------------------------------------------------------- */
+
+strong {
+    font-weight: 700 !important;
+}

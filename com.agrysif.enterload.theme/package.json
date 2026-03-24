@@ -1,0 +1,28 @@
+{
+    "name": "Enterload Theme",
+    "description": "A modern, minimalistic Discord-inspired dark theme for TeamSpeak with smooth animations, clean layout and a sleek visual design.",
+    "version": "1.0.0",
+    "identifier": "com.agrysif.enterload.theme",
+    "engines": {
+        "teamspeak": 1
+    },
+    "repository": {
+        "url": "https://github.com/Agrysif/Enterload",
+        "type": "git"
+    },
+    "image": "preview.png",
+    "license": "MIT",
+    "author": {
+        "name": "Agrysif"
+    },
+    "content": {
+        "themes": [
+            {
+                "name": "Enterload Dark",
+                "source": "theme.css",
+                "image": "preview.png",
+                "apiVersion": 1
+            }
+        ]
+    }
+}
