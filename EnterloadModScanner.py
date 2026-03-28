@@ -5,15 +5,15 @@ Scans your Mods folder for broken, incompatible, or outdated mods
 and opens a beautiful HTML report in your browser.
 
 Installation:
-  Place this .py file in:
+  Place EnterloadModScanner.ts4script in:
     Documents/Electronic Arts/The Sims 4/Mods/
 
-Usage (in-game):
-  Open the cheat console (Ctrl+Shift+C) and type:
+  The mod runs automatically when you load into a lot.
+  You can also trigger a manual scan via the cheat console (Ctrl+Shift+C):
     enterload
 
 Author : Enterload
-Version: 1.0.0
+Version: 1.1.0
 """
 
 import os
@@ -22,6 +22,7 @@ import sys
 import json
 import datetime
 import tempfile
+import threading
 import webbrowser
 import zipfile
 import traceback
@@ -37,7 +38,7 @@ try:
 except ImportError:
     _IN_GAME = False
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 MOD_NAME = "Enterload Mod Scanner"
 
 # ---------------------------------------------------------------------------
@@ -52,6 +53,80 @@ TOTAL_SIZE_CRIT_GB = 10       # Total Mods folder size critical threshold (GB)
 TOTAL_SIZE_CRIT_BYTES = TOTAL_SIZE_CRIT_GB * 1024 ** 3
 MOD_COUNT_WARN = 300           # Warn when total mod count exceeds this
 MOD_COUNT_CRIT = 500           # Critical warning when total mod count exceeds this
+
+# Thread-safe "only scan once per session" guard
+_scan_once_lock = threading.Lock()
+_scan_once_ran = False
+
+# ---------------------------------------------------------------------------
+# In-game notification helper
+# ---------------------------------------------------------------------------
+
+def _show_notification(title, message):
+    """
+    Show a toast notification inside the game.
+
+    Uses Sims 4's UiDialogNotification API.  Silently does nothing when
+    called outside of the game (e.g., during unit tests).
+    """
+    if not _IN_GAME:
+        return
+    try:
+        import services
+        import sims4.localization
+        from ui.ui_dialog_notification import UiDialogNotification
+        from sims4.localization import LocalizationHelperTuning
+
+        client = services.client_manager().get_first_client()
+        if client is None:
+            return
+
+        title_str = str(title)
+        msg_str = str(message)
+
+        notification = UiDialogNotification.TunableFactory().default_factory(
+            client.active_sim,
+            dialog_options=0,
+            title=lambda *_a, **_kw: LocalizationHelperTuning.get_raw_text(title_str),
+            text=lambda *_a, **_kw: LocalizationHelperTuning.get_raw_text(msg_str),
+        )
+        notification.show_dialog()
+    except Exception:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Background scan runner
+# ---------------------------------------------------------------------------
+
+def _run_scan_background(on_start_notification=True):
+    """
+    Run a full scan in a daemon background thread.
+
+    Immediately shows an in-game notification that scanning has started,
+    then—when the scan finishes—saves the HTML report and opens it in
+    the default browser.
+    """
+    if on_start_notification:
+        _show_notification(
+            f"🔍 {MOD_NAME}",
+            "Идёт фоновое сканирование модов…\nОтчёт откроется в браузере.",
+        )
+
+    def _worker():
+        try:
+            report_path = run_scan_and_open()
+            # Try to surface a completion notice; this may be a no-op if the
+            # game has already advanced past a state where notifications work.
+            _show_notification(
+                f"✅ {MOD_NAME}",
+                f"Сканирование завершено.\nОтчёт открыт в браузере.",
+            )
+        except Exception:
+            pass
+
+    t = threading.Thread(target=_worker, name="EnterloadScanThread", daemon=True)
+    t.start()
 
 
 # ---------------------------------------------------------------------------
@@ -310,22 +385,24 @@ def _scan_mods_folder():
                 ),
             })
 
-    # Performance: total size
-    size_gb = result["total_size"] / (1024 ** 3)
-    if size_gb > TOTAL_SIZE_CRIT_GB:
+    # Performance: total size — compare bytes directly to avoid float imprecision
+    total_bytes = result["total_size"]
+    if total_bytes > TOTAL_SIZE_CRIT_BYTES:
+        size_display = f"{total_bytes / (1024 ** 3):.1f} ГБ"
         result["performance_issues"].append({
             "type": "total_size",
             "severity": "warning",
-            "message": f"Общий размер папки Mods: {size_gb:.1f} ГБ",
+            "message": f"Общий размер папки Mods: {size_display}",
             "suggestion": (
                 "Очень большой объём папки Mods существенно замедляет загрузку игры."
             ),
         })
-    elif size_gb > TOTAL_SIZE_WARN_GB:
+    elif total_bytes > TOTAL_SIZE_WARN_BYTES:
+        size_display = f"{total_bytes / (1024 ** 3):.1f} ГБ"
         result["performance_issues"].append({
             "type": "total_size",
             "severity": "info",
-            "message": f"Общий размер папки Mods: {size_gb:.1f} ГБ",
+            "message": f"Общий размер папки Mods: {size_display}",
             "suggestion": "Следите за общим объёмом модов, чтобы игра грузилась быстрее.",
         })
 
@@ -1009,19 +1086,22 @@ if _IN_GAME:
         command_type=sims4.commands.CommandType.Live,
     )
     def _enterload_command(_connection=None):
-        """Open the Enterload mod scan report in your browser."""
+        """Scan mods and open the Enterload HTML report in your browser."""
         output = sims4.commands.CheatOutput(_connection)
-        output(f"[Enterload v{VERSION}] Сканирование модов…")
+        output(f"[{MOD_NAME} v{VERSION}] Запуск фонового сканирования…")
         try:
-            report_path = run_scan_and_open()
-            output(f"[Enterload] Отчёт открыт: {report_path}")
+            _run_scan_background(on_start_notification=True)
+            output(f"[{MOD_NAME}] Сканирование запущено. Отчёт откроется в браузере.")
         except Exception:
-            output("[Enterload] Ошибка при сканировании:")
+            output(f"[{MOD_NAME}] Ошибка запуска сканирования:")
             for line in traceback.format_exc().splitlines():
                 output("  " + line)
 
-    # Auto-scan once after the first zone loads so the player sees the report
-    # immediately without typing a command.
+    # ---------------------------------------------------------------------------
+    # Auto-scan once after the first zone loads.
+    # A zone_load_callback is the cleanest hook: it fires after the zone is
+    # fully loaded and the active Sim is available, so notifications work.
+    # ---------------------------------------------------------------------------
     try:
         import zone as _zone
 
@@ -1030,14 +1110,16 @@ if _IN_GAME:
         def _patched_load_zone(self, *args, **kwargs):
             result = _original_load_zone(self, *args, **kwargs)
             try:
-                import services as _services
-                # Only run once per session
-                client = _services.client_manager().get_first_client()
-                if client is not None and not getattr(
-                    _patched_load_zone, "_ran", False
-                ):
-                    _patched_load_zone._ran = True
-                    run_scan_and_open()
+                # Use the module-level lock so this is safe if zone loads
+                # ever fire concurrently or from different threads.
+                global _scan_once_ran
+                should_scan = False
+                with _scan_once_lock:
+                    if not _scan_once_ran:
+                        _scan_once_ran = True
+                        should_scan = True
+                if should_scan:
+                    _run_scan_background(on_start_notification=True)
             except Exception:
                 pass
             return result
