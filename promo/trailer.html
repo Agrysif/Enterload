@@ -207,14 +207,14 @@ const world = $('world');
 for (const name of SHOTS) {
   const el = document.createElement('div');
   el.className = 'slab';
-  el.innerHTML = `<img src="assets/shots/${name}.png"><div class="scan"></div>`;
+  el.innerHTML = `<img src="assets/shots/${LANG}/${name}.png"><div class="scan"></div>`;
   world.appendChild(el);
   slabs[name] = el;
 }
 const logo = new Image();
 logo.src = '../icon.svg';
 const coverSource = new Image();
-coverSource.src = 'assets/shots/download.png';
+coverSource.src = `assets/shots/${LANG}/download.png`;
 
 function slab(name, o) {
   const el = slabs[name];
@@ -243,7 +243,7 @@ function drawHud(t) {
     ctx.beginPath(); ctx.moveTo(x + 26 * a, y); ctx.lineTo(x, y); ctx.lineTo(x, y + 26 * b); ctx.stroke();
   });
   ctx.globalAlpha = 1;
-  mono('ENTERLOAD // V1.2.0', 76, 84, 20, { color: c });
+  mono('ENTERLOAD // V1.3.0', 76, 84, 20, { color: c });
   if (SECTION) mono(SECTION, 960, 84, 20, { color: dim, align: 'center' });
   const f = Math.floor(t * 60);
   const stamp = `${String(Math.floor(t)).padStart(2, '0')}:${String(f % 60).padStart(2, '0')}`;

@@ -1,14 +1,10 @@
 import React, { useMemo, useState } from 'react';
 import { LuCircleCheckBig, LuCopy, LuFileText, LuOctagonAlert, LuSearch, LuTrash2, LuTriangleAlert } from 'react-icons/lu';
 import { EmptyState, IconButton, Segmented, Sheet } from '../ui';
-import { formatDateTime, pluralize } from '../format';
+import { formatDateTime } from '../format';
+import { t } from '../../i18n';
 
 const api = window.enterload;
-
-const SORT_OPTIONS = [
-  { value: 'new', label: 'Сначала новые' },
-  { value: 'old', label: 'Сначала старые' },
-];
 
 const fullText = err => `${err.title}\n\n${err.log || err.description}`;
 
@@ -27,45 +23,47 @@ export default function ErrorsPage({ errorLog, setErrorLog, notify }) {
 
   const copy = err => {
     api.copyText(fullText(err));
-    notify('Ошибка скопирована', { force: true, tone: 'success' });
+    notify(t('errors.copied'), { force: true, tone: 'success' });
   };
   const remove = err => setErrorLog(list => list.filter(e => e.id !== err.id));
   const clearAll = () => {
-    if (window.confirm('Очистить журнал ошибок?')) setErrorLog([]);
+    if (window.confirm(t('errors.clearConfirm'))) setErrorLog([]);
   };
 
   return (
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Ошибки</h1>
+          <h1 className="page-title">{t('nav.errors')}</h1>
           <p className="page-subtitle">
-            {errorLog.length
-              ? `${errorLog.length} ${pluralize(errorLog.length, 'запись', 'записи', 'записей')} в журнале`
-              : 'Журнал проблем со ссылками и загрузками'}
+            {errorLog.length ? t('errors.count', { count: errorLog.length }) : t('errors.subtitle')}
           </p>
         </div>
         {errorLog.length > 0 && (
           <div className="toolbar">
-            <Segmented options={SORT_OPTIONS} value={sort} onChange={setSort} />
+            <Segmented
+              options={[{ value: 'new', label: t('errors.sortNew') }, { value: 'old', label: t('errors.sortOld') }]}
+              value={sort}
+              onChange={setSort}
+            />
             <label className="field field-search">
               <LuSearch />
-              <input type="text" placeholder="Поиск" value={query} onChange={e => setQuery(e.target.value)} />
+              <input type="text" placeholder={t('common.search')} value={query} onChange={e => setQuery(e.target.value)} />
             </label>
-            <button type="button" className="btn btn-danger" onClick={clearAll}>Очистить</button>
+            <button type="button" className="btn btn-danger" onClick={clearAll}>{t('common.clear')}</button>
           </div>
         )}
       </header>
 
       {!errorLog.length && (
         <div className="card">
-          <EmptyState tone="success" icon={<LuCircleCheckBig />} title="Ошибок нет" text="Всё работает как надо — можно жить дальше" />
+          <EmptyState tone="success" icon={<LuCircleCheckBig />} title={t('errors.emptyTitle')} text={t('errors.emptyText')} />
         </div>
       )}
 
       {errorLog.length > 0 && !visible.length && (
         <div className="card">
-          <EmptyState icon={<LuSearch />} title="Ничего не найдено" text="Попробуйте другой запрос" />
+          <EmptyState icon={<LuSearch />} title={t('common.nothingFound')} text={t('errors.nothingText')} />
         </div>
       )}
 
@@ -84,12 +82,12 @@ export default function ErrorsPage({ errorLog, setErrorLog, notify }) {
                 <div className="error-desc">{err.description}</div>
                 <div className="error-actions">
                   <button type="button" className="btn btn-plain btn-sm" onClick={() => setSelectedId(err.id)}>
-                    <LuFileText /> Подробнее
+                    <LuFileText /> {t('errors.details')}
                   </button>
                   <button type="button" className="btn btn-plain btn-sm" onClick={() => copy(err)}>
-                    <LuCopy /> Копировать
+                    <LuCopy /> {t('common.copy')}
                   </button>
-                  <IconButton icon={<LuTrash2 />} label="Удалить" className="danger" onClick={() => remove(err)} />
+                  <IconButton icon={<LuTrash2 />} label={t('common.delete')} className="danger" onClick={() => remove(err)} />
                 </div>
               </div>
             </div>
@@ -103,13 +101,13 @@ export default function ErrorsPage({ errorLog, setErrorLog, notify }) {
           onClose={() => setSelectedId(null)}
           footer={(
             <>
-              <button type="button" className="btn btn-gray" onClick={() => copy(selected)}><LuCopy /> Копировать</button>
-              <button type="button" className="btn btn-primary" onClick={() => setSelectedId(null)}>Готово</button>
+              <button type="button" className="btn btn-gray" onClick={() => copy(selected)}><LuCopy /> {t('common.copy')}</button>
+              <button type="button" className="btn btn-primary" onClick={() => setSelectedId(null)}>{t('common.done')}</button>
             </>
           )}
         >
           <p className="page-subtitle" style={{ marginTop: 0, marginBottom: 12 }}>
-            {formatDateTime(selected.timestamp)} · {selected.critical ? 'критичная' : 'некритичная'}
+            {formatDateTime(selected.timestamp)} · {selected.critical ? t('errors.critical') : t('errors.nonCritical')}
           </p>
           <pre className="code">{selected.log || selected.description}</pre>
         </Sheet>

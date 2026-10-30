@@ -11,27 +11,18 @@ import { ACTIVE_PHASES } from '../hooks';
 import {
   basename, formatBytes, formatClock, formatCompact, formatEta, formatInt, formatSpeed, formatUploadDate, isHttpUrl,
 } from '../format';
+import { t } from '../../i18n';
 
 const api = window.enterload;
 
-export const QUALITY_OPTIONS = [
-  { value: 'original', label: 'Лучшее', hint: 'до 4K' },
+const qualityOptions = () => [
+  { value: 'original', label: t('quality.best'), hint: t('quality.bestHint') },
   { value: '1080p', label: '1080p' },
   { value: '720p', label: '720p' },
   { value: '480p', label: '480p' },
   { value: '360p', label: '360p' },
-  { value: 'audio', label: 'Только аудио', hint: 'MP3' },
+  { value: 'audio', label: t('quality.audio'), hint: 'MP3' },
 ];
-
-const PHASE_LABELS = {
-  starting: 'Подготовка',
-  downloading: 'Скачивание',
-  paused: 'Пауза',
-  resuming: 'Возобновляем загрузку',
-  processing: 'Обработка файла',
-  done: 'Готово',
-  error: 'Не удалось скачать',
-};
 
 const TAGS_PREVIEW = 14;
 const STICKY_GAP = 16;
@@ -95,7 +86,7 @@ function StatusCard({ status, accent, downloader, onOpenFolder }) {
       <div className="status-head">
         <span className="status-icon">{icon}</span>
         <span className="status-title">
-          <b>{PHASE_LABELS[phase]}</b>
+          <b>{t(`phase.${phase}`)}</b>
           <small title={status.title}>{status.title}</small>
         </span>
         {showPercent && <span className="status-percent tabular">{Math.floor(progress)}%</span>}
@@ -103,15 +94,15 @@ function StatusCard({ status, accent, downloader, onOpenFolder }) {
           <>
             <IconButton
               icon={phase === 'paused' ? <LuPlay /> : <LuPause />}
-              label={phase === 'paused' ? 'Продолжить' : 'Пауза'}
+              label={phase === 'paused' ? t('status.resume') : t('status.pause')}
               onClick={phase === 'paused' ? downloader.resume : downloader.pause}
               disabled={indeterminate}
               className="filled"
             />
-            <IconButton icon={<LuX />} label="Отменить" onClick={downloader.cancel} className="filled danger" />
+            <IconButton icon={<LuX />} label={t('status.cancel')} onClick={downloader.cancel} className="filled danger" />
           </>
         ) : (
-          <IconButton icon={<LuX />} label="Скрыть" onClick={downloader.dismiss} />
+          <IconButton icon={<LuX />} label={t('status.dismiss')} onClick={downloader.dismiss} />
         )}
       </div>
 
@@ -126,14 +117,14 @@ function StatusCard({ status, accent, downloader, onOpenFolder }) {
       {(phase === 'downloading' || phase === 'paused') && (
         <div className="status-meta tabular">
           <span>{formatSpeed(status.speed)} · {formatBytes(status.downloaded)}</span>
-          <span>{phase === 'paused' ? 'на паузе' : formatEta(status.eta)}</span>
+          <span>{phase === 'paused' ? t('status.onPause') : formatEta(status.eta)}</span>
         </div>
       )}
       {phase === 'resuming' && (
-        <div className="status-meta"><span>Подождите, подключаемся к сайту — обычно это несколько секунд</span></div>
+        <div className="status-meta"><span>{t('status.resumingNote')}</span></div>
       )}
       {phase === 'processing' && (
-        <div className="status-meta"><span>Склеиваем видео и звук, встраиваем обложку…</span></div>
+        <div className="status-meta"><span>{t('status.processingNote')}</span></div>
       )}
       {active && status.points.length > 1 && <SpeedChart points={status.points} accent={accent} />}
 
@@ -141,11 +132,11 @@ function StatusCard({ status, accent, downloader, onOpenFolder }) {
         <>
           <div className="status-meta tabular">
             <span>{formatBytes(result.sizeBytes)}</span>
-            <span>в среднем {formatSpeed(result.avgSpeedBps)}</span>
+            <span>{t('status.average', { speed: formatSpeed(result.avgSpeedBps) })}</span>
           </div>
           <div className="status-actions">
             <button type="button" className="btn btn-tinted btn-sm" onClick={() => onOpenFolder(result)}>
-              <LuFolderOpen /> Показать в папке
+              <LuFolderOpen /> {t('common.showInFolder')}
             </button>
           </div>
         </>
@@ -153,7 +144,7 @@ function StatusCard({ status, accent, downloader, onOpenFolder }) {
       {phase === 'error' && (
         <div className="status-actions">
           <button type="button" className="btn btn-tinted btn-sm" onClick={downloader.retry}>
-            <LuRotateCcw /> Повторить
+            <LuRotateCcw /> {t('status.retry')}
           </button>
         </div>
       )}
@@ -178,8 +169,8 @@ function Lightbox({ src, onCopy, onClose }) {
     <div className="lightbox" onMouseDown={e => e.target === e.currentTarget && onClose()}>
       <img src={src} alt="" />
       <div className="toolbar">
-        <button type="button" className="btn btn-gray" onClick={onCopy}><LuCopy /> Копировать</button>
-        <button type="button" className="btn btn-gray" onClick={onClose}>Закрыть</button>
+        <button type="button" className="btn btn-gray" onClick={onCopy}><LuCopy /> {t('common.copy')}</button>
+        <button type="button" className="btn btn-gray" onClick={onClose}>{t('common.close')}</button>
       </div>
     </div>
   );
@@ -193,19 +184,19 @@ function ChipSection({ title, items, copyText }) {
     <div className="video-section">
       <div className="video-section-head">
         <h4>{title}</h4>
-        <button type="button" className="btn btn-plain btn-sm" onClick={() => copyText(items.join(', '), `Скопировано: ${title.toLowerCase()}`)}>
-          Копировать все
+        <button type="button" className="btn btn-plain btn-sm" onClick={() => copyText(items.join(', '), t('video.copiedList', { what: title.toLowerCase() }))}>
+          {t('video.copyAll')}
         </button>
       </div>
       <div className="tags">
         {visible.map(item => (
-          <button type="button" key={item} className="chip" title="Скопировать" onClick={() => copyText(item, `Скопировано «${item}»`)}>
+          <button type="button" key={item} className="chip" title={t('video.copyItem')} onClick={() => copyText(item, t('video.copiedItem', { item }))}>
             {item}
           </button>
         ))}
         {items.length > TAGS_PREVIEW && (
           <button type="button" className="chip" onClick={() => setExpanded(v => !v)}>
-            {expanded ? 'Меньше' : `+${items.length - TAGS_PREVIEW}`}
+            {expanded ? t('video.less') : `+${items.length - TAGS_PREVIEW}`}
           </button>
         )}
       </div>
@@ -223,8 +214,8 @@ function VideoDetails({ info, notify }) {
   };
   const copyImage = async () => {
     const res = await api.copyImage(info.thumbnail);
-    if (res?.ok) notify('Обложка скопирована', { force: true, tone: 'success' });
-    else notify(`Не удалось скопировать: ${res?.error || 'ошибка'}`, { force: true, tone: 'danger' });
+    if (res?.ok) notify(t('video.coverCopied'), { force: true, tone: 'success' });
+    else notify(t('video.copyFailed', { error: res?.error || t('common.error') }), { force: true, tone: 'danger' });
   };
 
   const uploadDate = formatUploadDate(info.uploadDate);
@@ -237,8 +228,8 @@ function VideoDetails({ info, notify }) {
         {info.ageLimit >= 18 && <span className="thumb-badge age">18+</span>}
         {info.thumbnail && (
           <div className="thumb-actions">
-            <button type="button" className="glass-btn" title="Скопировать обложку" onClick={copyImage}><LuCopy /></button>
-            <button type="button" className="glass-btn" title="Открыть обложку" onClick={() => setLightbox(true)}><LuMaximize2 /></button>
+            <button type="button" className="glass-btn" title={t('video.copyCover')} onClick={copyImage}><LuCopy /></button>
+            <button type="button" className="glass-btn" title={t('video.openCover')} onClick={() => setLightbox(true)}><LuMaximize2 /></button>
           </div>
         )}
       </div>
@@ -255,12 +246,12 @@ function VideoDetails({ info, notify }) {
       </div>
 
       <div className="metrics">
-        {info.resolution && <Metric label="Разрешение" value={info.resolution.replace('x', '×')} />}
-        {info.fps && <Metric label="Кадры" value={`${info.fps} fps`} />}
-        {info.filesize && <Metric label="Размер" value={`≈ ${formatBytes(info.filesize)}`} />}
-        {info.views != null && <Metric label="Просмотры" value={formatCompact(info.views)} title={formatInt(info.views)} />}
-        {info.likes != null && <Metric label="Лайки" value={formatCompact(info.likes)} title={formatInt(info.likes)} />}
-        {uploadDate && <Metric label="Опубликовано" value={uploadDate} />}
+        {info.resolution && <Metric label={t('video.resolution')} value={info.resolution.replace('x', '×')} />}
+        {info.fps && <Metric label={t('video.fps')} value={`${info.fps} fps`} />}
+        {info.filesize && <Metric label={t('video.size')} value={`≈ ${formatBytes(info.filesize)}`} />}
+        {info.views != null && <Metric label={t('video.views')} value={formatCompact(info.views)} title={formatInt(info.views)} />}
+        {info.likes != null && <Metric label={t('video.likes')} value={formatCompact(info.likes)} title={formatInt(info.likes)} />}
+        {uploadDate && <Metric label={t('video.published')} value={uploadDate} />}
       </div>
 
       {info.license && <div className="license-line"><LuScale /> {info.license}</div>}
@@ -268,13 +259,13 @@ function VideoDetails({ info, notify }) {
       {info.description && (
         <div className="video-section">
           <div className="video-section-head">
-            <h4>Описание</h4>
+            <h4>{t('video.description')}</h4>
             <div className="toolbar">
               <button type="button" className="btn btn-plain btn-sm" onClick={() => setDescExpanded(v => !v)}>
-                {descExpanded ? 'Свернуть' : 'Развернуть'}
+                {descExpanded ? t('video.collapse') : t('video.expand')}
               </button>
-              <button type="button" className="btn btn-plain btn-sm" onClick={() => copyText(info.description, 'Описание скопировано')}>
-                Копировать
+              <button type="button" className="btn btn-plain btn-sm" onClick={() => copyText(info.description, t('video.descriptionCopied'))}>
+                {t('common.copy')}
               </button>
             </div>
           </div>
@@ -282,9 +273,9 @@ function VideoDetails({ info, notify }) {
         </div>
       )}
 
-      <ChipSection title="В ролях" items={info.cast || []} copyText={copyText} />
-      <ChipSection title="Категории" items={info.categories || []} copyText={copyText} />
-      <ChipSection title="Теги" items={info.tags || []} copyText={copyText} />
+      <ChipSection title={t('video.cast')} items={info.cast || []} copyText={copyText} />
+      <ChipSection title={t('video.categories')} items={info.categories || []} copyText={copyText} />
+      <ChipSection title={t('video.tags')} items={info.tags || []} copyText={copyText} />
 
       {lightbox && <Lightbox src={info.thumbnail} onCopy={copyImage} onClose={() => setLightbox(false)} />}
     </div>
@@ -298,8 +289,8 @@ function Preview({ url, meta, notify }) {
       <div className="card preview">
         <EmptyState
           icon={<LuSparkles />}
-          title="Вставьте ссылку"
-          text="YouTube, VK Видео, Rutube и сотни других сайтов — обложка и подробности появятся здесь"
+          title={t('preview.emptyTitle')}
+          text={t('preview.emptyText')}
         />
       </div>
     );
@@ -307,14 +298,14 @@ function Preview({ url, meta, notify }) {
   if (!isHttpUrl(target)) {
     return (
       <div className="card preview">
-        <EmptyState icon={<LuLink />} title="Это не похоже на ссылку" text="Ссылка должна начинаться с http:// или https://" />
+        <EmptyState icon={<LuLink />} title={t('preview.notLinkTitle')} text={t('download.linkHint')} />
       </div>
     );
   }
   if (meta.error) {
     return (
       <div className="card preview">
-        <EmptyState tone="danger" icon={<LuOctagonAlert />} title="Не удалось открыть ссылку" text={`${meta.error}. Подробности — в разделе «Ошибки».`} />
+        <EmptyState tone="danger" icon={<LuOctagonAlert />} title={t('preview.errorTitle')} text={t('preview.errorText', { error: meta.error })} />
       </div>
     );
   }
@@ -328,7 +319,7 @@ function Preview({ url, meta, notify }) {
           {[0, 1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 54, borderRadius: 14 }} />)}
         </div>
         <div className="analysis-note">
-          <span>{meta.slow ? 'Это занимает больше времени, чем обычно…' : 'Анализируем ссылку…'}</span>
+          <span>{meta.slow ? t('preview.slow') : t('preview.analyzing')}</span>
           <span className="tabular">{meta.progress}%</span>
         </div>
       </div>
@@ -350,7 +341,7 @@ export default function DownloadPage({
     const res = await api.readClipboardText();
     const text = res?.text?.trim();
     if (text) setUrl(text);
-    else notify('В буфере обмена нет текста', { force: true });
+    else notify(t('download.noClipboardText'), { force: true });
   };
 
   const start = () => {
@@ -362,8 +353,8 @@ export default function DownloadPage({
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Загрузка</h1>
-          <p className="page-subtitle">Видео и музыка по ссылке — в один клик</p>
+          <h1 className="page-title">{t('nav.download')}</h1>
+          <p className="page-subtitle">{t('download.subtitle')}</p>
         </div>
       </header>
 
@@ -374,7 +365,7 @@ export default function DownloadPage({
               <LuLink />
               <input
                 type="text"
-                placeholder="Ссылка на видео"
+                placeholder={t('download.linkPlaceholder')}
                 value={url}
                 onChange={e => setUrl(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && start()}
@@ -382,34 +373,34 @@ export default function DownloadPage({
                 autoFocus
               />
               {url ? (
-                <IconButton icon={<LuX />} label="Очистить" onClick={() => setUrl('')} />
+                <IconButton icon={<LuX />} label={t('common.clear')} onClick={() => setUrl('')} />
               ) : (
                 <button type="button" className="btn btn-tinted btn-sm" onClick={paste}>
-                  <LuClipboardPaste /> Вставить
+                  <LuClipboardPaste /> {t('download.paste')}
                 </button>
               )}
             </div>
-            {target && !isHttpUrl(target) && <p className="url-hint danger">Ссылка должна начинаться с http:// или https://</p>}
+            {target && !isHttpUrl(target) && <p className="url-hint danger">{t('download.linkHint')}</p>}
           </div>
 
-          <Group title="Параметры">
-            <Row icon={<LuSlidersHorizontal />} title="Качество">
-              <Menu value={options.quality} options={QUALITY_OPTIONS} onChange={v => setOption('quality', v)} label="Качество" />
+          <Group title={t('download.options')}>
+            <Row icon={<LuSlidersHorizontal />} title={t('option.quality')}>
+              <Menu value={options.quality} options={qualityOptions()} onChange={v => setOption('quality', v)} label={t('option.quality')} />
             </Row>
-            <Row icon={<LuImage />} title="Обложка" subtitle="Встроить превью в файл">
-              <Switch checked={options.embedThumbnail} onChange={v => setOption('embedThumbnail', v)} label="Обложка" />
+            <Row icon={<LuImage />} title={t('option.cover')} subtitle={t('option.coverHint')}>
+              <Switch checked={options.embedThumbnail} onChange={v => setOption('embedThumbnail', v)} label={t('option.cover')} />
             </Row>
-            <Row icon={<LuTags />} title="Метаданные" subtitle="Название, автор и описание">
-              <Switch checked={options.embedMetadata} onChange={v => setOption('embedMetadata', v)} label="Метаданные" />
+            <Row icon={<LuTags />} title={t('option.metadata')} subtitle={t('option.metadataHint')}>
+              <Switch checked={options.embedMetadata} onChange={v => setOption('embedMetadata', v)} label={t('option.metadata')} />
             </Row>
-            <Row icon={<LuImageDown />} title="Обложка отдельно" subtitle="Сохранить .jpg рядом с видео">
-              <Switch checked={options.saveThumbnail} onChange={v => setOption('saveThumbnail', v)} label="Обложка отдельно" />
+            <Row icon={<LuImageDown />} title={t('option.saveCover')} subtitle={t('option.saveCoverHint')}>
+              <Switch checked={options.saveThumbnail} onChange={v => setOption('saveThumbnail', v)} label={t('option.saveCover')} />
             </Row>
-            <Row icon={<LuFileText />} title="Описание в .txt" subtitle="Ссылка, описание, категории и теги рядом с видео">
-              <Switch checked={options.saveInfo} onChange={v => setOption('saveInfo', v)} label="Описание в .txt" />
+            <Row icon={<LuFileText />} title={t('option.saveInfo')} subtitle={t('option.saveInfoHint')}>
+              <Switch checked={options.saveInfo} onChange={v => setOption('saveInfo', v)} label={t('option.saveInfo')} />
             </Row>
-            <Row icon={<LuFolder />} title="Папка" onClick={onSelectFolder} hint={downloadPath}>
-              <span className="row-value">{basename(downloadPath) || 'Выбрать'}</span>
+            <Row icon={<LuFolder />} title={t('option.folder')} onClick={onSelectFolder} hint={downloadPath}>
+              <span className="row-value">{basename(downloadPath) || t('option.chooseFolder')}</span>
               <LuChevronRight className="row-chevron" />
             </Row>
           </Group>
@@ -417,12 +408,12 @@ export default function DownloadPage({
           {engine.ffmpeg === false && (
             <div className="engine-note">
               <LuTriangleAlert />
-              <span>ffmpeg не найден — доступны только готовые форматы (обычно до 720p), обложка и метаданные не встраиваются.</span>
+              <span>{t('download.noFfmpeg')}</span>
             </div>
           )}
 
           <button type="button" className="btn btn-primary btn-lg btn-block" disabled={!canDownload} onClick={start}>
-            {isActive ? <><LuLoaderCircle className="spin" /> Идёт загрузка</> : <><LuArrowDownToLine /> Скачать</>}
+            {isActive ? <><LuLoaderCircle className="spin" /> {t('download.inProgress')}</> : <><LuArrowDownToLine /> {t('download.start')}</>}
           </button>
 
           {status.phase !== 'idle' && (

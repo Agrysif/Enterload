@@ -15,11 +15,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Agrysif/Enterload/releases/download/v1.2.0/Enterload-trailer-ru.mp4"><img src="docs/media/hero-ru.webp" width="100%" alt="Трейлер Enterload"></a>
+  <a href="https://github.com/Agrysif/Enterload/releases/latest/download/Enterload-trailer-ru.mp4"><img src="docs/media/hero-ru.webp" width="100%" alt="Трейлер Enterload"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Agrysif/Enterload/releases/download/v1.2.0/Enterload-trailer-ru.mp4"><b>▶ Смотреть трейлер</b></a> · 53 секунды, 1080p
+  <a href="https://github.com/Agrysif/Enterload/releases/latest/download/Enterload-trailer-ru.mp4"><b>▶ Смотреть трейлер</b></a> · 53 секунды, 1080p
 </p>
 
 ## Что умеет
@@ -37,11 +37,23 @@
 - **Файлы рядом с видео:** обложка в `.jpg` и `.txt` с названием, ссылкой, описанием и тегами. Оба можно отключить.
 - **История** с поиском, фильтрами и группировкой по дням, а ещё **статистика** по размеру, длительности и скорости.
 - **Светлая и тёмная темы** и 8 акцентных цветов. С **цветом сайта** приложение окрашивается под сайт из ссылки.
+- **13 языков.** Приложение берёт язык Windows, а если его нет в списке, включает английский. Сменить язык можно в настройках.
 - **Автообновление.** Новая версия скачивается в фоне и ставится при перезапуске.
 
 <p align="center">
   <img src="docs/media/screens-ru.webp" width="100%" alt="Загрузка, история, статистика и темы">
 </p>
+
+## Скриншоты
+
+| | |
+|---|---|
+| <img src="docs/media/shot-download-ru.webp" alt="Загрузка с подробностями о видео"> | <img src="docs/media/shot-history-ru.webp" alt="История загрузок"> |
+| <img src="docs/media/shot-stats-ru.webp" alt="Статистика"> | <img src="docs/media/shot-settings-languages-ru.webp" alt="Настройки со списком языков"> |
+
+## Языки
+
+English, Русский, Українська, Беларуская, Қазақша, Oʻzbekcha, Azərbaycanca, Հայերեն, Кыргызча, Тоҷикӣ, Türkmençe, Română, 简体中文.
 
 ## Установка
 
@@ -73,6 +85,7 @@ npm start
 | `npm run release` | то же, что `build`, плюс выпуск на GitHub |
 | `npm run fetch:ffmpeg` | скачать FFmpeg в `vendor/ffmpeg` (сборка делает это сама) |
 | `npm run update:yt-dlp` | скачать свежий yt-dlp в `node_modules` |
+| `npm run check:locales` | сверить переводы с английским и кодом |
 
 ### Структура
 
@@ -80,6 +93,8 @@ npm start
 src/
   main.js              — главный процесс: окно, IPC, yt-dlp, автообновление
   preload.js           — безопасный мост window.enterload
+  i18n.js              — языки интерфейса, общий код для обоих процессов
+  locales/             — переводы: en.json основной, остальные сверяет npm run check:locales
   renderer/
     App.jsx            — оболочка: боковая панель, навигация, тема, уведомления
     hooks.js           — анализ ссылки, загрузчик, обновления

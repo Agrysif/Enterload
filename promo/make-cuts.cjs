@@ -1,5 +1,6 @@
-// Cuts from the finished trailers: a short teaser and looping animations for the README.
-// usage: node promo/make-cuts.cjs
+// Media for the README: a short teaser and looping animations cut from the finished trailers,
+// and screenshots from the captured app screens.
+// usage: node promo/make-cuts.cjs [en ru]
 const { execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
@@ -10,6 +11,8 @@ os.setPriority(os.constants.priority.PRIORITY_BELOW_NORMAL);
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(__dirname, 'out');
 const MEDIA = path.join(ROOT, 'docs', 'media');
+const SHOTS = path.join(__dirname, 'assets', 'shots');
+const SCREENSHOTS = ['download', 'history', 'stats', 'settings-languages'];
 const FFMPEG = process.env.FFMPEG || path.join(ROOT, 'vendor', 'ffmpeg', 'ffmpeg.exe');
 
 const BAR = 240 / 140;
@@ -40,10 +43,17 @@ function loop(source, from, to, target) {
   ]);
 }
 
+function screenshot(lang, name, target) {
+  ffmpeg(['-i', path.join(SHOTS, lang, `${name}.png`), '-vf', 'scale=1860:-1:flags=lanczos', '-c:v', 'libwebp', '-quality', '86', '-frames:v', '1', target]);
+}
+
+const langs = process.argv.slice(2);
 fs.mkdirSync(MEDIA, { recursive: true });
 for (const [lang, suffix] of [['en', ''], ['ru', '-ru']]) {
+  if (langs.length && !langs.includes(lang)) continue;
   const source = path.join(OUT, `Enterload-trailer-${lang}.mp4`);
   if (!fs.existsSync(source)) continue;
+  SCREENSHOTS.forEach(name => screenshot(lang, name, path.join(MEDIA, `shot-${name}${suffix}.webp`)));
   teaser(source, path.join(OUT, `Enterload-teaser-${lang}.mp4`));
   loop(source, K(14) - .1, K(16), path.join(MEDIA, `hero${suffix}.webp`));
   loop(source, K(15), K(18), path.join(MEDIA, `features${suffix}.webp`));

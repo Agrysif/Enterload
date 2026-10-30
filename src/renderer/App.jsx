@@ -8,6 +8,7 @@ import { IconButton } from './ui';
 import { useDownloader, useMetadata, useUpdateEffect, useUpdater } from './hooks';
 import { accentColor, ACCENTS, siteAccentFor } from './theme';
 import { newId } from './format';
+import { resolveLanguage, setLanguage, t } from '../i18n';
 import DownloadPage from './pages/DownloadPage';
 import HistoryPage from './pages/HistoryPage';
 import StatsPage from './pages/StatsPage';
@@ -59,11 +60,11 @@ const persist = (key, value) => {
 const persistDurations = list => persist('analysisDurations', list);
 
 const NAV = [
-  { tab: 'download', label: 'Загрузка', icon: <LuArrowDownToLine /> },
-  { tab: 'history', label: 'История', icon: <LuHistory /> },
-  { tab: 'stats', label: 'Статистика', icon: <LuChartNoAxesColumn /> },
-  { tab: 'errors', label: 'Ошибки', icon: <LuTriangleAlert /> },
-  { tab: 'settings', label: 'Настройки', icon: <LuSettings /> },
+  { tab: 'download', label: 'nav.download', icon: <LuArrowDownToLine /> },
+  { tab: 'history', label: 'nav.history', icon: <LuHistory /> },
+  { tab: 'stats', label: 'nav.stats', icon: <LuChartNoAxesColumn /> },
+  { tab: 'errors', label: 'nav.errors', icon: <LuTriangleAlert /> },
+  { tab: 'settings', label: 'nav.settings', icon: <LuSettings /> },
 ];
 
 const TOAST_ICONS = { success: <LuCircleCheck />, danger: <LuOctagonAlert /> };
@@ -71,6 +72,17 @@ const TOAST_ICONS = { success: <LuCircleCheck />, danger: <LuOctagonAlert /> };
 const systemPrefersDark = () => window.matchMedia('(prefers-color-scheme: dark)').matches;
 
 const App = () => {
+  // ---------------- language ----------------
+  // "system" or a language code. Strings read the current language while rendering, so it's set first.
+  const [languageChoice, setLanguageChoice] = useState(persisted.language || 'system');
+  const language = setLanguage(resolveLanguage(languageChoice, boot.systemLanguages));
+
+  useLayoutEffect(() => {
+    document.documentElement.lang = language;
+    api.setLanguage(language);
+  }, [language]);
+  useUpdateEffect(() => persist('language', languageChoice), [languageChoice]);
+
   // ---------------- theme ----------------
   const [theme, setTheme] = useState(persisted.theme);
   const [accentId, setAccentId] = useState(ACCENTS.some(a => a.id === persisted.accent) ? persisted.accent : 'blue');
@@ -177,7 +189,7 @@ const App = () => {
 
   const openFolder = useCallback(async item => {
     const res = await api.openFolder(item.folderPath, item.filePath);
-    if (!res?.ok) notify(res?.error || 'Не удалось открыть папку', { force: true, tone: 'danger' });
+    if (!res?.ok) notify(res?.error || t('app.folderOpenFailed'), { force: true, tone: 'danger' });
   }, [notify]);
 
   // ---------------- download form ----------------
@@ -223,8 +235,8 @@ const App = () => {
     setEngine(e => ({ ...e, updating: true }));
     const res = await api.updateEngine();
     setEngine(e => ({ ...e, updating: false, ytDlpVersion: res?.version || e.ytDlpVersion }));
-    if (res?.ok) notify(`yt-dlp обновлён до ${res.version}`, { force: true, tone: 'success' });
-    else notify(`Не удалось обновить yt-dlp: ${res?.error || 'ошибка'}`, { force: true, tone: 'danger' });
+    if (res?.ok) notify(t('app.engineUpdated', { version: res.version }), { force: true, tone: 'success' });
+    else notify(t('app.engineUpdateFailed', { error: res?.error || t('common.error') }), { force: true, tone: 'danger' });
   };
 
   // ---------------- keyboard, mouse and clipboard shortcuts ----------------
@@ -280,7 +292,7 @@ const App = () => {
     download: isActive && status.phase !== 'starting' ? { text: `${Math.floor(status.progress)}%`, kind: 'activity' } : null,
     errors: errorLog.length ? { text: errorLog.length > 99 ? '99+' : String(errorLog.length) } : null,
   };
-  const username = boot.username || 'друг';
+  const username = boot.username || t('app.defaultUser');
 
   let page = null;
   if (activeTab === 'download') {
@@ -318,6 +330,9 @@ const App = () => {
   } else if (activeTab === 'settings') {
     page = (
       <SettingsPage
+        languageChoice={languageChoice}
+        setLanguageChoice={setLanguageChoice}
+        systemLanguages={boot.systemLanguages}
         theme={theme}
         setTheme={setTheme}
         resolvedTheme={resolvedTheme}
@@ -358,7 +373,7 @@ const App = () => {
                 onClick={() => navigate(item.tab)}
               >
                 {item.icon}
-                <span>{item.label}</span>
+                <span>{t(item.label)}</span>
                 {badge && <span className={`nav-badge tabular ${badge.kind || ''}`}>{badge.text}</span>}
               </button>
             );
@@ -368,7 +383,7 @@ const App = () => {
           {updater.state === 'downloading' && (
             <div className="update-note tabular">
               <LuCloudDownload />
-              <span>Скачиваем обновление… {updater.percent}%</span>
+              <span>{t('app.updateDownloading', { percent: updater.percent })}</span>
             </div>
           )}
           {(updater.state === 'ready' || updater.state === 'available') && (
@@ -377,20 +392,20 @@ const App = () => {
               className="btn btn-primary btn-sm btn-block"
               onClick={updater.install}
               disabled={updater.state === 'ready' && isActive}
-              title={updater.state === 'ready' && isActive ? 'Дождитесь окончания загрузки' : undefined}
+              title={updater.state === 'ready' && isActive ? t('common.waitDownload') : undefined}
             >
               <LuCircleArrowUp />
-              {updater.state === 'ready' ? 'Перезапустить и обновить' : `Скачать версию ${updater.version}`}
+              {updater.state === 'ready' ? t('app.updateRestart') : t('app.updateGetVersion', { version: updater.version })}
             </button>
           )}
           <button
             type="button"
             className="nav-item support"
-            title="Приложение бесплатное — здесь можно сказать спасибо автору"
+            title={t('app.supportHint')}
             onClick={() => api.openUrl(DONATE_URL)}
           >
             <LuHeart />
-            <span>Поддержать проект</span>
+            <span>{t('app.support')}</span>
           </button>
         </div>
         <div className="sidebar-footer">
@@ -404,10 +419,11 @@ const App = () => {
 
       <div className="main">
         <div className="topbar">
-          <IconButton icon={<LuChevronLeft />} label="Назад (Alt+←)" onClick={goBack} disabled={nav.index === 0} />
-          <IconButton icon={<LuChevronRight />} label="Вперёд (Alt+→)" onClick={goForward} disabled={nav.index >= nav.stack.length - 1} />
+          <IconButton icon={<LuChevronLeft />} label={t('app.back')} onClick={goBack} disabled={nav.index === 0} />
+          <IconButton icon={<LuChevronRight />} label={t('app.forward')} onClick={goForward} disabled={nav.index >= nav.stack.length - 1} />
         </div>
-        <main className="content" key={activeTab}>
+        {/* a new language remounts the page: its memoized labels hold the old strings */}
+        <main className="content" key={`${activeTab}-${language}`}>
           {page}
         </main>
       </div>

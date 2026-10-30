@@ -1,6 +1,6 @@
 {
   "name": "enterload3",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Enterload — загрузчик видео на Electron + React + yt-dlp",
   "author": "Егор Балашов",
   "private": true,
@@ -17,7 +17,8 @@
     "build:dir": "node scripts/release.js --dir",
     "update:yt-dlp": "node node_modules/yt-dlp-exec/scripts/postinstall.js",
     "release": "node scripts/release.js --publish",
-    "fetch:ffmpeg": "node scripts/fetch-ffmpeg.js"
+    "fetch:ffmpeg": "node scripts/fetch-ffmpeg.js",
+    "check:locales": "node scripts/check-locales.js"
   },
   "build": {
     "appId": "com.enterload.app",
@@ -29,6 +30,8 @@
     "files": [
       "src/main.js",
       "src/preload.js",
+      "src/i18n.js",
+      "src/locales/*.json",
       "dist/**/*",
       "build/icon.png",
       "package.json"

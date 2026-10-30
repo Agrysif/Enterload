@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { average, isHttpUrl, newId, sourceFromUrl } from './format';
+import { t } from '../i18n';
 
 const api = window.enterload;
 
@@ -67,9 +68,9 @@ export function useMetadata(url, { logError, durations, onDuration }) {
           setProgress(100);
           setInfo(res.data);
         } else {
-          const message = res?.error || 'Не удалось получить данные о видео';
+          const message = res?.error || t('errors.metadataFailed');
           setError(message);
-          logError({ title: 'Ошибка анализа ссылки', description: message, log: `${target}\n\n${res?.log || message}` });
+          logError({ title: t('errors.analysisTitle'), description: message, log: `${target}\n\n${res?.log || message}` });
         }
       });
     }, 450);
@@ -97,7 +98,7 @@ export function useUpdater({ notify }) {
       setUpdate(next);
       if (!['ready', 'available'].includes(next.state) || announcedRef.current === next.version) return;
       announcedRef.current = next.version;
-      notify(`Вышла новая версия — ${next.version}`, { force: true, tone: 'success' });
+      notify(t('app.updateNew', { version: next.version }), { force: true, tone: 'success' });
     };
     api.getUpdateState().then(apply);
     return api.on('update-status', apply);
@@ -106,7 +107,7 @@ export function useUpdater({ notify }) {
   const check = useCallback(() => api.checkForUpdates(), []);
   const install = useCallback(async () => {
     const res = await api.installUpdate();
-    if (!res?.ok) notify(res?.error || 'Не удалось установить обновление', { force: true, tone: 'danger' });
+    if (!res?.ok) notify(res?.error || t('app.updateInstallFailed'), { force: true, tone: 'danger' });
   }, [notify]);
 
   return { ...update, check, install };
@@ -142,7 +143,7 @@ export function useDownloader({ notify, logError, addHistory }) {
   const fail = useCallback((message, log) => {
     const ctx = ctxRef.current || {};
     go('error', { error: message, eta: null });
-    logError({ title: 'Ошибка загрузки', description: message, log: `${ctx.url || ''}\n\n${log || message}`, critical: true });
+    logError({ title: t('errors.downloadTitle'), description: message, log: `${ctx.url || ''}\n\n${log || message}`, critical: true });
     notify(message, { tone: 'danger' });
   }, [go, logError, notify]);
 
@@ -160,7 +161,7 @@ export function useDownloader({ notify, logError, addHistory }) {
       saveInfo: options.saveInfo,
       downloadPath: options.downloadPath,
     });
-    if (!res?.ok && phaseRef.current === 'starting') fail(res?.error || 'Не удалось начать загрузку', res?.log);
+    if (!res?.ok && phaseRef.current === 'starting') fail(res?.error || t('errors.startFailed'), res?.log);
   }, [go, fail]);
 
   const retry = useCallback(() => ctxRef.current && start(ctxRef.current), [start]);
@@ -232,24 +233,24 @@ export function useDownloader({ notify, logError, addHistory }) {
         sizeBytes,
         durationSeconds: info.durationSeconds || 0,
         downloadDuration: result.activeSeconds || 0,
-        resolution: ctx.quality === 'audio' ? 'аудио' : result.resolution || info.resolution || '',
+        resolution: ctx.quality === 'audio' ? 'audio' : result.resolution || info.resolution || '',
         source: sourceFromUrl(ctx.url),
         sourceUrl: ctx.url,
         folderPath: result.folderPath,
         filePath: result.filePath,
         avgSpeedBps: result.activeSeconds > 0 ? sizeBytes / result.activeSeconds : 0,
-        status: 'Успешно',
+        status: 'success',
       };
       addHistory(entry);
       go('done', { progress: 100, eta: null, result: entry, title: entry.title });
-      notify('Загрузка завершена', { tone: 'success' });
+      notify(t('download.finished'), { tone: 'success' });
     };
 
     const onError = ({ message, log }) => fail(message, log);
 
     const onCancelled = () => {
       go('idle', IDLE);
-      notify('Загрузка отменена');
+      notify(t('download.cancelled'));
     };
 
     const offs = [

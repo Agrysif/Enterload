@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { LuCheck, LuChevronsUpDown, LuX } from 'react-icons/lu';
+import { t } from '../i18n';
 
 export const Switch = ({ checked, onChange, label }) => (
   <button
@@ -153,7 +154,7 @@ export const Sheet = ({ title, onClose, children, footer }) => {
       <div className="sheet" role="dialog" aria-modal="true" aria-label={title}>
         <div className="sheet-header">
           <h3>{title}</h3>
-          <IconButton icon={<LuX />} label="Закрыть" className="filled" onClick={onClose} />
+          <IconButton icon={<LuX />} label={t('common.close')} className="filled" onClick={onClose} />
         </div>
         <div className="sheet-body">{children}</div>
         {footer && <div className="sheet-footer">{footer}</div>}

@@ -1,19 +1,13 @@
 // Accent colors in the spirit of iOS system colors: [light, dark] variants
 export const ACCENTS = [
-  { id: 'blue', name: 'Синий', light: '#007aff', dark: '#0a84ff' },
-  { id: 'indigo', name: 'Индиго', light: '#5856d6', dark: '#5e5ce6' },
-  { id: 'purple', name: 'Фиолетовый', light: '#af52de', dark: '#bf5af2' },
-  { id: 'pink', name: 'Розовый', light: '#ff2d55', dark: '#ff375f' },
-  { id: 'orange', name: 'Оранжевый', light: '#f08c00', dark: '#ff9f0a' },
-  { id: 'green', name: 'Зелёный', light: '#28a745', dark: '#30d158' },
-  { id: 'teal', name: 'Бирюзовый', light: '#1f9fb8', dark: '#40c8e0' },
-  { id: 'graphite', name: 'Графит', light: '#6e6e73', dark: '#98989d' },
-];
-
-export const THEME_OPTIONS = [
-  { value: 'system', label: 'Авто' },
-  { value: 'light', label: 'Светлая' },
-  { value: 'dark', label: 'Тёмная' },
+  { id: 'blue', light: '#007aff', dark: '#0a84ff' },
+  { id: 'indigo', light: '#5856d6', dark: '#5e5ce6' },
+  { id: 'purple', light: '#af52de', dark: '#bf5af2' },
+  { id: 'pink', light: '#ff2d55', dark: '#ff375f' },
+  { id: 'orange', light: '#f08c00', dark: '#ff9f0a' },
+  { id: 'green', light: '#28a745', dark: '#30d158' },
+  { id: 'teal', light: '#1f9fb8', dark: '#40c8e0' },
+  { id: 'graphite', light: '#6e6e73', dark: '#98989d' },
 ];
 
 export const accentColor = (id, theme) => {
@@ -27,7 +21,7 @@ export const SITE_ACCENTS = [
   { name: 'YouTube', hosts: ['youtube.com', 'youtu.be', 'youtube-nocookie.com'], color: '#ff0033', dark: '#ff3355' },
   { name: 'VK', hosts: ['vk.com', 'vk.ru', 'vkvideo.ru', 'vkontakte.ru'], color: '#0077ff', dark: '#2787f5' },
   { name: 'Rutube', hosts: ['rutube.ru'], color: '#ed143b', dark: '#ff3a5c' },
-  { name: 'Одноклассники', hosts: ['ok.ru'], color: '#ee8208' },
+  { name: 'OK.ru', hosts: ['ok.ru'], color: '#ee8208' },
   { name: 'Pornhub', hosts: ['pornhub.com', 'pornhub.org', 'pornhubpremium.com'], color: '#ff9000', onAccent: '#000' },
   { name: 'TikTok', hosts: ['tiktok.com'], color: '#fe2c55' },
   { name: 'Twitch', hosts: ['twitch.tv'], color: '#9146ff', dark: '#a970ff' },

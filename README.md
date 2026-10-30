@@ -15,11 +15,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Agrysif/Enterload/releases/download/v1.2.0/Enterload-trailer.mp4"><img src="docs/media/hero.webp" width="100%" alt="Enterload trailer"></a>
+  <a href="https://github.com/Agrysif/Enterload/releases/latest/download/Enterload-trailer.mp4"><img src="docs/media/hero.webp" width="100%" alt="Enterload trailer"></a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Agrysif/Enterload/releases/download/v1.2.0/Enterload-trailer.mp4"><b>▶ Watch the trailer</b></a> · 53 seconds, 1080p
+  <a href="https://github.com/Agrysif/Enterload/releases/latest/download/Enterload-trailer.mp4"><b>▶ Watch the trailer</b></a> · 53 seconds, 1080p
 </p>
 
 ## What it does
@@ -37,11 +37,23 @@ Paste a link from YouTube, VK, Rutube, TikTok, Twitch, Vimeo or any of the other
 - **Files next to the video**: the cover as `.jpg` and a `.txt` with the title, link, description and tags. Both are optional.
 - **History** with search, filters and days, plus **statistics** on size, length and speed.
 - **Light and dark themes** and 8 accent colors. With **site color** on, the app takes the color of the site in your link.
+- **13 languages.** The app follows your Windows language and uses English if it isn't on the list. You can change it in Settings.
 - **Automatic updates.** New versions download in the background and install on restart.
 
 <p align="center">
   <img src="docs/media/screens.webp" width="100%" alt="Download, history, statistics and themes">
 </p>
+
+## Screenshots
+
+| | |
+|---|---|
+| <img src="docs/media/shot-download.webp" alt="Download page with video details"> | <img src="docs/media/shot-history.webp" alt="Download history"> |
+| <img src="docs/media/shot-stats.webp" alt="Statistics"> | <img src="docs/media/shot-settings-languages.webp" alt="Settings with the list of languages"> |
+
+## Languages
+
+English, Русский, Українська, Беларуская, Қазақша, Oʻzbekcha, Azərbaycanca, Հայերեն, Кыргызча, Тоҷикӣ, Türkmençe, Română, 简体中文.
 
 ## Install
 
@@ -50,8 +62,6 @@ Download `Enterload-Setup-x.y.z.exe` from the [latest release](https://github.co
 Windows may show “Windows protected your PC”. Click “More info”, then “Run anyway”. The app carries our own signature rather than a paid certificate, so Windows doesn't recognize the publisher yet.
 
 `Enterload-x.y.z-portable.exe` runs without installation, but it can't update itself.
-
-The interface is in Russian.
 
 ## Support the project
 

@@ -1,9 +1,9 @@
 // Demo profile for the promo shots: open films by Blender Studio, no personal data.
-// usage: node promo/seed-profile.cjs <profileDir> <downloadDir>
+// usage: node promo/seed-profile.cjs <profileDir> <downloadDir> [language]
 const fs = require('fs');
 const path = require('path');
 
-const [profile, downloads] = process.argv.slice(2);
+const [profile, downloads, language = 'en'] = process.argv.slice(2);
 const DAY = 864e5;
 
 const FILMS = [
@@ -48,7 +48,7 @@ const history = PLAN.map(([film, daysAgo, sizeMb, speedMb], i) => {
     folderPath: downloads,
     filePath: file,
     avgSpeedBps: speedMb * 1e6,
-    status: 'Успешно',
+    status: 'success',
   };
 }).sort((a, b) => a.dateTs - b.dateTs);
 
@@ -57,6 +57,7 @@ fs.mkdirSync(profile, { recursive: true });
 fs.mkdirSync(downloads, { recursive: true });
 fs.writeFileSync(path.join(profile, 'enterload-data.json'), JSON.stringify({
   migrated: true,
+  language,
   theme: 'dark',
   accent: 'blue',
   siteAccent: false,

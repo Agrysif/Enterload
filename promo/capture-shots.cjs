@@ -1,5 +1,6 @@
-// Captures the app screens for the trailer through the DevTools protocol.
-// The app must run with the demo profile and --remote-debugging-port.
+// Captures the app screens for the trailer and the README through the DevTools protocol.
+// The app must run with the demo profile, --remote-debugging-port and ENTERLOAD_NO_WINDOW=1.
+// The profile sets the interface language, so nothing here depends on the text of the screens.
 // usage: node promo/capture-shots.cjs <port> <outDir> [only,these,steps]
 // Steps: static, site, active, themes
 const fs = require('fs');
@@ -33,13 +34,17 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const avatar = document.querySelector('.sidebar-footer .avatar'); if (avatar) avatar.textContent = 'A';
     document.querySelectorAll('.nav-badge:not(.activity)').forEach(el => el.remove());
     document.querySelectorAll('.row-value').forEach(el => { if (el.textContent.startsWith('promo-')) el.textContent = 'Downloads'; });
+    document.querySelectorAll('.row-path').forEach(el => { el.textContent = 'C:\\Users\\Agrysif\\Downloads'; });
   })()`);
-  const nav = async label => {
-    await ev(`[...document.querySelectorAll('.nav-item')].find(b => b.textContent.includes(${JSON.stringify(label)})).click()`);
+  const TABS = ['download', 'history', 'stats', 'errors', 'settings'];
+  const nav = async tab => {
+    await ev(`document.querySelectorAll('.nav-item')[${TABS.indexOf(tab)}].click()`);
     await sleep(900);
     await tidy();
     await sleep(150);
   };
+  // the charts draw a moment after the page, and slower at double resolution
+  const waitCharts = () => sleep(3000);
   const shot = async name => {
     const r = await send('Page.captureScreenshot', { format: 'png' });
     fs.writeFileSync(path.join(outDir, `${name}.png`), Buffer.from(r.result.data, 'base64'));
@@ -54,22 +59,28 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     }
     return false;
   };
-  const pick = text => ev(`[...document.querySelectorAll('button')].find(b => b.textContent.trim() === ${JSON.stringify(text)}).click()`);
-  const toggleSiteColor = () => ev(`[...document.querySelectorAll('.row')].find(r => r.textContent.includes('Цвет сайта')).querySelector('.switch').click()`);
+  const pickTheme = name => ev(`document.querySelectorAll('.settings-page .segmented button')[${['system', 'light', 'dark'].indexOf(name)}].click()`);
+  const pickAccent = name => ev(`document.querySelector('[data-accent="${name}"]').click()`);
+  const toggleSiteColor = () => ev(`document.querySelector('.settings-page .switch').click()`);
 
   await send('Emulation.setDeviceMetricsOverride', { width: 1240, height: 820, deviceScaleFactor: 2, mobile: false });
   await sleep(500);
   await tidy();
 
   if (only.includes('static')) {
-    await nav('История');
+    await nav('history');
     await sleep(2500); // thumbnails
     await shot('history');
-    await nav('Статистика');
+    await nav('stats');
+    await waitCharts();
     await shot('stats');
-    await nav('Настройки');
+    await nav('settings');
     await shot('settings');
-    await nav('Загрузка');
+    await ev(`document.querySelector('.settings-page .menu-trigger').click()`);
+    await sleep(300);
+    await shot('settings-languages');
+    await ev(`document.querySelector('.settings-page .menu-trigger').click()`);
+    await nav('download');
     await setUrl(YOUTUBE_DEMO);
     if (await waitInfo()) {
       await sleep(2500);
@@ -79,23 +90,23 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
   }
 
   if (only.includes('site')) {
-    await nav('Настройки');
+    await nav('settings');
     await toggleSiteColor();
     await sleep(300);
-    await nav('Загрузка');
+    await nav('download');
     await setUrl(YOUTUBE_DEMO);
     if (await waitInfo()) {
       await sleep(2500);
       await tidy();
       await shot('download-site');
     } else console.log('no analysis for download-site');
-    await nav('Настройки');
+    await nav('settings');
     await toggleSiteColor();
     await sleep(300);
   }
 
   if (only.includes('active')) {
-    await nav('Загрузка');
+    await nav('download');
     await setUrl(ACTIVE_DEMO);
     if (await waitInfo()) {
       await sleep(2000);
@@ -110,33 +121,34 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
       await sleep(300);
       await shot('download-active');
       console.log(await ev(`document.querySelector('.status-card')?.textContent?.slice(0, 80)`));
-      await ev(`document.querySelector('.status-card button[aria-label="Отменить"]')?.click()`);
+      await ev(`document.querySelector('.status-card .icon-btn.danger')?.click()`);
       await sleep(2500);
-      await ev(`document.querySelector('.status-card button[aria-label="Скрыть"]')?.click()`);
+      await ev(`document.querySelector('.status-card .icon-btn')?.click()`);
     } else console.log('no analysis for download-active');
   }
 
   if (only.includes('themes')) {
-    await nav('Загрузка');
+    await nav('download');
     await setUrl('');
-    await nav('Настройки');
-    await pick('Светлая');
+    await nav('settings');
+    await pickTheme('light');
     await sleep(500);
-    await nav('История');
+    await nav('history');
     await sleep(1500);
     await shot('history-light');
-    await nav('Настройки');
-    await ev(`document.querySelector('.accent-swatch[title="Фиолетовый"]').click()`);
+    await nav('settings');
+    await pickAccent('purple');
     await sleep(400);
-    await pick('Тёмная');
+    await pickTheme('dark');
     await sleep(500);
-    await nav('Статистика');
+    await nav('stats');
+    await waitCharts();
     await shot('stats-purple');
-    await nav('Настройки');
-    await ev(`document.querySelector('.accent-swatch[title="Зелёный"]').click()`);
+    await nav('settings');
+    await pickAccent('green');
     await sleep(500);
     await shot('settings-green');
-    await ev(`document.querySelector('.accent-swatch[title="Синий"]').click()`);
+    await pickAccent('blue');
   }
 
   await send('Emulation.clearDeviceMetricsOverride');

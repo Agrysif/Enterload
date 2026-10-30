@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('enterload', {
     set: (key, value) => ipcRenderer.send('store-set', key, value),
   },
   setTheme: theme => ipcRenderer.send('set-theme', theme),
+  setLanguage: code => ipcRenderer.send('set-language', code),
 
   getEngineInfo: () => ipcRenderer.invoke('engine-info'),
   updateEngine: () => ipcRenderer.invoke('engine-update'),

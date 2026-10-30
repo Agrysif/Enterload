@@ -3,8 +3,9 @@ import { Bar } from 'react-chartjs-2';
 import { LuChartNoAxesColumn } from 'react-icons/lu';
 import { EmptyState } from '../ui';
 import {
-  average, formatBytes, formatDateTime, formatInt, formatSpan, formatSpeed, parseResolution, pluralize,
+  average, formatBytes, formatDateTime, formatInt, formatSpan, formatSpeed, parseResolution,
 } from '../format';
+import { formatDate, t } from '../../i18n';
 
 const DAYS = 14;
 
@@ -35,7 +36,7 @@ function DailyChart({ history, accent, theme }) {
       if (i !== undefined) values[i] += 1;
     });
     return {
-      labels: days.map(d => d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '')),
+      labels: days.map(d => formatDate({ month: d.getMonth(), day: d.getDate() }, { short: true })),
       counts: values,
     };
   }, [history]);
@@ -61,7 +62,7 @@ function DailyChart({ history, accent, theme }) {
       tooltip: {
         callbacks: {
           title: items => items[0].label,
-          label: item => `${item.raw} ${pluralize(item.raw, 'загрузка', 'загрузки', 'загрузок')}`,
+          label: item => t('history.count', { count: item.raw }),
         },
       },
     },
@@ -85,8 +86,8 @@ function DailyChart({ history, accent, theme }) {
   return (
     <div className="hero-chart">
       <div className="hero-chart-head">
-        <span>Последние {DAYS} дней</span>
-        <span className="tabular">{total} {pluralize(total, 'загрузка', 'загрузки', 'загрузок')}</span>
+        <span>{t('stats.lastDays', { days: DAYS })}</span>
+        <span className="tabular">{t('history.count', { count: total })}</span>
       </div>
       <div className="hero-chart-canvas"><Bar data={data} options={options} /></div>
     </div>
@@ -138,8 +139,8 @@ export default function StatsPage({ history, sessionStart, appSeconds, totalAppS
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">Статистика</h1>
-          <p className="page-subtitle">Всё о ваших загрузках</p>
+          <h1 className="page-title">{t('nav.stats')}</h1>
+          <p className="page-subtitle">{t('stats.subtitle')}</p>
         </div>
       </header>
 
@@ -147,74 +148,74 @@ export default function StatsPage({ history, sessionStart, appSeconds, totalAppS
         <div className="card stats-hero">
           <div>
             <div className="hero-number tabular">{formatInt(stats.total)}</div>
-            <div className="hero-caption">видео скачано</div>
+            <div className="hero-caption">{t('stats.downloaded', { count: stats.total })}</div>
             <div className="hero-sub">
-              {formatBytes(stats.totalBytes)} на диске
+              {t('stats.onDisk', { size: formatBytes(stats.totalBytes) })}
               <br />
-              Последнее — {formatDateTime(stats.last)}
+              {t('stats.last', { date: formatDateTime(stats.last) })}
             </div>
           </div>
           <DailyChart history={history} accent={accent} theme={theme} />
         </div>
       ) : (
         <div className="card" style={{ marginBottom: 26 }}>
-          <EmptyState icon={<LuChartNoAxesColumn />} title="Пока нет данных" text="Скачайте первое видео — и здесь появятся графики и цифры" />
+          <EmptyState icon={<LuChartNoAxesColumn />} title={t('stats.emptyTitle')} text={t('stats.emptyText')} />
         </div>
       )}
 
       {stats.total > 0 && (
         <>
-          <Section title="Объём">
-            <Tile label="Всего" value={formatBytes(stats.totalBytes)} />
-            <Tile label="Средний файл" value={formatBytes(stats.avgSize)} />
-            <Tile label="Медиана" value={formatBytes(stats.median)} title="Половина файлов меньше этого размера, половина — больше" />
+          <Section title={t('stats.volume')}>
+            <Tile label={t('stats.total')} value={formatBytes(stats.totalBytes)} />
+            <Tile label={t('stats.avgFile')} value={formatBytes(stats.avgSize)} />
+            <Tile label={t('stats.median')} value={formatBytes(stats.median)} title={t('stats.medianHint')} />
             {sizeTotal > 0 && (
               <div className="tile distribution">
-                <span>Размеры файлов</span>
+                <span>{t('stats.fileSizes')}</span>
                 <div className="distribution-bar">
                   <i style={{ flexGrow: stats.small }} />
                   <i style={{ flexGrow: stats.medium }} />
                   <i style={{ flexGrow: stats.large }} />
                 </div>
                 <div className="distribution-legend tabular">
-                  <span><i /> до 100 МБ <b>{stats.small}</b></span>
-                  <span><i /> 100–500 МБ <b>{stats.medium}</b></span>
-                  <span><i /> от 500 МБ <b>{stats.large}</b></span>
+                  <span><i /> {t('stats.sizeSmall', { size: `100 ${t('unit.mb')}` })} <b>{stats.small}</b></span>
+                  <span><i /> 100–500 {t('unit.mb')} <b>{stats.medium}</b></span>
+                  <span><i /> {t('stats.sizeLarge', { size: `500 ${t('unit.mb')}` })} <b>{stats.large}</b></span>
                 </div>
               </div>
             )}
           </Section>
 
-          <Section title="Длительность видео">
-            <Tile label="Всего" value={formatSpan(stats.totalDuration)} />
-            <Tile label="В среднем" value={formatSpan(stats.avgDuration)} />
-            <Tile label="Самое короткое" value={formatSpan(stats.minDuration)} />
-            <Tile label="Самое длинное" value={formatSpan(stats.maxDuration)} />
+          <Section title={t('stats.videoLength')}>
+            <Tile label={t('stats.total')} value={formatSpan(stats.totalDuration)} />
+            <Tile label={t('stats.average')} value={formatSpan(stats.avgDuration)} />
+            <Tile label={t('stats.shortest')} value={formatSpan(stats.minDuration)} />
+            <Tile label={t('stats.longest')} value={formatSpan(stats.maxDuration)} />
           </Section>
 
-          <Section title="Скорость загрузки">
+          <Section title={t('stats.speed')}>
             <Tile
-              label="Средняя"
+              label={t('stats.speedAverage')}
               value={formatSpeed(stats.avgSpeed)}
-              note={stats.session ? `в этой сессии ${formatSpeed(stats.sessionAvgSpeed)}` : null}
+              note={stats.session ? t('stats.speedSession', { speed: formatSpeed(stats.sessionAvgSpeed) }) : null}
             />
-            <Tile label="Максимальная" value={formatSpeed(stats.maxSpeed)} />
-            <Tile label="Минимальная" value={formatSpeed(stats.minSpeed)} />
+            <Tile label={t('stats.speedMax')} value={formatSpeed(stats.maxSpeed)} />
+            <Tile label={t('stats.speedMin')} value={formatSpeed(stats.minSpeed)} />
           </Section>
 
-          <Section title="Активность">
-            <Tile label="За 7 дней" value={formatInt(stats.week)} />
-            <Tile label="За 30 дней" value={formatInt(stats.month)} />
-            <Tile label="В этой сессии" value={formatInt(stats.session)} />
-            <Tile label="Горизонтальные" value={formatInt(stats.horizontal)} />
-            <Tile label="Вертикальные" value={formatInt(stats.vertical)} />
+          <Section title={t('stats.activity')}>
+            <Tile label={t('stats.days7')} value={formatInt(stats.week)} />
+            <Tile label={t('stats.days30')} value={formatInt(stats.month)} />
+            <Tile label={t('stats.session')} value={formatInt(stats.session)} />
+            <Tile label={t('stats.horizontal')} value={formatInt(stats.horizontal)} />
+            <Tile label={t('stats.vertical')} value={formatInt(stats.vertical)} />
           </Section>
         </>
       )}
 
-      <Section title="Время в приложении">
-        <Tile label="Эта сессия" value={formatSpan(appSeconds)} />
-        <Tile label="Всего" value={formatSpan(totalAppSeconds)} />
+      <Section title={t('stats.appTime')}>
+        <Tile label={t('stats.session')} value={formatSpan(appSeconds)} />
+        <Tile label={t('stats.total')} value={formatSpan(totalAppSeconds)} />
       </Section>
     </div>
   );

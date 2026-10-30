@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { LuExternalLink, LuFilm, LuFolderOpen, LuMusic, LuTrash2 } from 'react-icons/lu';
 import { IconButton } from './ui';
-import { formatBytes, formatClock, formatTime, resolutionLabel } from './format';
+import { formatBytes, formatClock, formatTime, isAudioResolution, resolutionLabel } from './format';
+import { t } from '../i18n';
 
 const api = window.enterload;
 
 const HistoryItem = ({ item, onOpenFolder, onDelete }) => {
   const [thumbFailed, setThumbFailed] = useState(false);
-  const isAudio = item.resolution === 'аудио' || item.resolution === 'audio';
+  const isAudio = isAudioResolution(item.resolution);
   const meta = [
-    isAudio ? 'Аудио' : resolutionLabel(item.resolution),
+    resolutionLabel(item.resolution),
     item.sizeBytes ? formatBytes(item.sizeBytes) : '',
     formatClock(item.durationSeconds),
   ].filter(Boolean);
@@ -40,9 +41,9 @@ const HistoryItem = ({ item, onOpenFolder, onDelete }) => {
       <div className="history-side">
         <span className="history-time tabular">{formatTime(item.dateTs)}</span>
         <div className="history-actions">
-          <IconButton icon={<LuFolderOpen />} label="Показать в папке" onClick={() => onOpenFolder(item)} />
-          <IconButton icon={<LuExternalLink />} label="Открыть страницу видео" onClick={() => api.openUrl(item.sourceUrl)} />
-          <IconButton icon={<LuTrash2 />} label="Удалить из истории" className="danger" onClick={() => onDelete(item)} />
+          <IconButton icon={<LuFolderOpen />} label={t('common.showInFolder')} onClick={() => onOpenFolder(item)} />
+          <IconButton icon={<LuExternalLink />} label={t('history.openPage')} onClick={() => api.openUrl(item.sourceUrl)} />
+          <IconButton icon={<LuTrash2 />} label={t('history.remove')} className="danger" onClick={() => onDelete(item)} />
         </div>
       </div>
     </div>

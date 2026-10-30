@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { LuArrowDownToLine, LuHistory, LuListFilter, LuSearch } from 'react-icons/lu';
 import { EmptyState, IconButton } from '../ui';
 import HistoryItem from '../HistoryItem';
-import { MB, dayKey, formatDay, pluralize, resolutionLabel } from '../format';
+import { MB, dayKey, formatDay, resolutionLabel } from '../format';
+import { t } from '../../i18n';
 
 const PAGE = 30;
 const EMPTY_FILTERS = {
@@ -62,35 +63,35 @@ export default function HistoryPage({ history, setHistory, onOpenFolder, onGoDow
   const update = patch => setFilters(f => ({ ...f, ...patch }));
   const remove = item => setHistory(list => list.filter(i => i !== item));
   const clearAll = () => {
-    if (window.confirm('Очистить всю историю загрузок? Файлы на диске останутся.')) setHistory([]);
+    if (window.confirm(t('history.clearConfirm'))) setHistory([]);
   };
 
   const subtitle = hasFilters || query
-    ? `Найдено ${filtered.length} из ${history.length}`
-    : `${history.length} ${pluralize(history.length, 'загрузка', 'загрузки', 'загрузок')}`;
+    ? t('history.subtitleFound', { found: filtered.length, total: history.length })
+    : t('history.count', { count: history.length });
 
   return (
     <div className="page">
       <header className="page-header">
         <div>
-          <h1 className="page-title">История</h1>
+          <h1 className="page-title">{t('nav.history')}</h1>
           {history.length > 0 && <p className="page-subtitle">{subtitle}</p>}
         </div>
         {history.length > 0 && (
           <div className="toolbar">
             <label className="field field-search">
               <LuSearch />
-              <input type="text" placeholder="Поиск" value={query} onChange={e => setQuery(e.target.value)} />
+              <input type="text" placeholder={t('common.search')} value={query} onChange={e => setQuery(e.target.value)} />
             </label>
             <IconButton
               icon={<LuListFilter />}
-              label="Фильтры"
+              label={t('history.filters')}
               onClick={() => setFiltersOpen(v => !v)}
               className={filtersOpen ? 'active' : 'filled'}
             >
               {hasFilters && !filtersOpen && <span className="dot" />}
             </IconButton>
-            <button type="button" className="btn btn-danger" onClick={clearAll}>Очистить</button>
+            <button type="button" className="btn btn-danger" onClick={clearAll}>{t('common.clear')}</button>
           </div>
         )}
       </header>
@@ -99,7 +100,7 @@ export default function HistoryPage({ history, setHistory, onOpenFolder, onGoDow
         <div className="card filters">
           {services.length > 0 && (
             <div className="filter-field wide">
-              <label>Сервис</label>
+              <label>{t('history.service')}</label>
               <div className="chips">
                 {services.map(s => (
                   <button
@@ -117,38 +118,38 @@ export default function HistoryPage({ history, setHistory, onOpenFolder, onGoDow
             </div>
           )}
           <div className="filter-field">
-            <label>Дата</label>
+            <label>{t('history.date')}</label>
             <div className="pair">
               <span className="field field-sm"><input type="date" value={filters.dateFrom} onChange={e => update({ dateFrom: e.target.value })} /></span>
               <span className="field field-sm"><input type="date" value={filters.dateTo} onChange={e => update({ dateTo: e.target.value })} /></span>
             </div>
           </div>
           <div className="filter-field">
-            <label>Размер, МБ</label>
+            <label>{t('history.sizeMb')}</label>
             <div className="pair">
-              <span className="field field-sm"><input type="number" min="0" placeholder="от" value={filters.sizeMin} onChange={e => update({ sizeMin: e.target.value })} /></span>
-              <span className="field field-sm"><input type="number" min="0" placeholder="до" value={filters.sizeMax} onChange={e => update({ sizeMax: e.target.value })} /></span>
+              <span className="field field-sm"><input type="number" min="0" placeholder={t('common.from')} value={filters.sizeMin} onChange={e => update({ sizeMin: e.target.value })} /></span>
+              <span className="field field-sm"><input type="number" min="0" placeholder={t('common.to')} value={filters.sizeMax} onChange={e => update({ sizeMax: e.target.value })} /></span>
             </div>
           </div>
           <div className="filter-field">
-            <label>Длительность, мин</label>
+            <label>{t('history.durationMin')}</label>
             <div className="pair">
-              <span className="field field-sm"><input type="number" min="0" placeholder="от" value={filters.durMin} onChange={e => update({ durMin: e.target.value })} /></span>
-              <span className="field field-sm"><input type="number" min="0" placeholder="до" value={filters.durMax} onChange={e => update({ durMax: e.target.value })} /></span>
+              <span className="field field-sm"><input type="number" min="0" placeholder={t('common.from')} value={filters.durMin} onChange={e => update({ durMin: e.target.value })} /></span>
+              <span className="field field-sm"><input type="number" min="0" placeholder={t('common.to')} value={filters.durMax} onChange={e => update({ durMax: e.target.value })} /></span>
             </div>
           </div>
           <div className="filter-field">
-            <label>Качество</label>
+            <label>{t('option.quality')}</label>
             <span className="field field-sm">
               <select value={filters.resolution} onChange={e => update({ resolution: e.target.value })}>
-                <option value="">Любое</option>
+                <option value="">{t('history.any')}</option>
                 {resolutions.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
             </span>
           </div>
           <div className="filters-footer">
             <button type="button" className="btn btn-plain btn-sm" disabled={!hasFilters} onClick={() => setFilters(EMPTY_FILTERS)}>
-              Сбросить фильтры
+              {t('history.resetFilters')}
             </button>
           </div>
         </div>
@@ -158,11 +159,11 @@ export default function HistoryPage({ history, setHistory, onOpenFolder, onGoDow
         <div className="card">
           <EmptyState
             icon={<LuHistory />}
-            title="История пуста"
-            text="Здесь появятся все скачанные видео — с быстрым доступом к файлам"
+            title={t('history.emptyTitle')}
+            text={t('history.emptyText')}
             action={(
               <button type="button" className="btn btn-primary" onClick={onGoDownload}>
-                <LuArrowDownToLine /> Скачать первое видео
+                <LuArrowDownToLine /> {t('history.firstDownload')}
               </button>
             )}
           />
@@ -171,7 +172,7 @@ export default function HistoryPage({ history, setHistory, onOpenFolder, onGoDow
 
       {history.length > 0 && !filtered.length && (
         <div className="card">
-          <EmptyState icon={<LuSearch />} title="Ничего не найдено" text="Попробуйте изменить запрос или сбросить фильтры" />
+          <EmptyState icon={<LuSearch />} title={t('common.nothingFound')} text={t('history.nothingText')} />
         </div>
       )}
 
@@ -194,7 +195,7 @@ export default function HistoryPage({ history, setHistory, onOpenFolder, onGoDow
       {filtered.length > limit && (
         <div className="load-more">
           <button type="button" className="btn btn-gray" onClick={() => setLimit(l => l + PAGE)}>
-            Показать ещё {Math.min(PAGE, filtered.length - limit)}
+            {t('history.showMore', { count: Math.min(PAGE, filtered.length - limit) })}
           </button>
         </div>
       )}

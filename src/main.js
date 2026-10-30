@@ -6,12 +6,17 @@ const fs = require('fs');
 const os = require('os');
 const { spawn } = require('child_process');
 const { autoUpdater } = require('electron-updater');
+const { formatUploadDate, resolveLanguage, setLanguage, t } = require('./i18n');
 
 // Keep history and settings in the same folder as earlier versions of the app
 // (ENTERLOAD_DATA_DIR allows a separate profile, e.g. for testing)
 app.setPath('userData', process.env.ENTERLOAD_DATA_DIR || path.join(app.getPath('appData'), 'enterload3'));
 
 const isDev = !app.isPackaged && process.env.NODE_ENV === 'development';
+// For screenshots and tests: the app renders off screen and never shows a window.
+// Without the GPU, because off-screen capture loses accelerated canvases: the charts come out empty.
+const noWindow = !!process.env.ENTERLOAD_NO_WINDOW;
+if (noWindow) app.disableHardwareAcceleration();
 const DEV_URL = 'http://localhost:3001';
 const EXE_SUFFIX = process.platform === 'win32' ? '.exe' : '';
 const ICON_PATH = path.join(__dirname, '..', 'build', 'icon.png');
@@ -168,7 +173,7 @@ function resolveYtDlp() {
 
 async function ytDlpBinary() {
   const { path: bin } = await resolveYtDlp();
-  if (!bin) throw new Error('yt-dlp не найден. Переустановите приложение или выполните npm install.');
+  if (!bin) throw new Error(t('err.ytDlpReinstall'));
   return bin;
 }
 
@@ -182,26 +187,26 @@ function hasFfmpeg() {
 }
 
 const KNOWN_ERRORS = [
-  [/Unsupported URL/i, 'Этот сайт не поддерживается'],
-  [/Private video/i, 'Это приватное видео'],
-  [/Video unavailable|This video is unavailable|has been removed/i, 'Видео недоступно или удалено'],
-  [/confirm your age|age-restricted|inappropriate for some users/i, 'Видео с возрастным ограничением — нужен вход в аккаунт'],
-  [/not a bot/i, 'YouTube просит подтвердить, что вы не бот. Попробуйте позже или обновите yt-dlp в настройках'],
-  [/page needs to be reloaded|Failed to extract|Unable to extract/i, 'Сайт изменил формат страницы — обновите yt-dlp в настройках'],
-  [/HTTP Error 403/i, 'Доступ запрещён (HTTP 403). Попробуйте обновить yt-dlp в настройках'],
-  [/HTTP Error 404/i, 'Страница не найдена (HTTP 404)'],
-  [/Requested format is not available/i, 'Выбранное качество недоступно для этого видео'],
-  [/No space left/i, 'Недостаточно места на диске'],
-  [/Permission denied|Access is denied|WinError 5/i, 'Нет доступа к папке загрузки'],
-  [/ffmpeg|ffprobe/i, 'Для этой операции нужен ffmpeg'],
-  [/getaddrinfo|Failed to resolve|timed out|Connection (refused|reset|aborted)|Unable to download webpage/i, 'Нет соединения с сайтом. Проверьте интернет'],
+  [/Unsupported URL/i, 'err.unsupported'],
+  [/Private video/i, 'err.private'],
+  [/Video unavailable|This video is unavailable|has been removed/i, 'err.unavailable'],
+  [/confirm your age|age-restricted|inappropriate for some users/i, 'err.ageRestricted'],
+  [/not a bot/i, 'err.notBot'],
+  [/page needs to be reloaded|Failed to extract|Unable to extract/i, 'err.siteChanged'],
+  [/HTTP Error 403/i, 'err.http403'],
+  [/HTTP Error 404/i, 'err.http404'],
+  [/Requested format is not available/i, 'err.qualityUnavailable'],
+  [/No space left/i, 'err.noSpace'],
+  [/Permission denied|Access is denied|WinError 5/i, 'err.noFolderAccess'],
+  [/ffmpeg|ffprobe/i, 'err.needFfmpeg'],
+  [/getaddrinfo|Failed to resolve|timed out|Connection (refused|reset|aborted)|Unable to download webpage/i, 'err.noConnection'],
 ];
 
-function describeError(stderr, fallback = 'Неизвестная ошибка') {
+function describeError(stderr, fallback = t('err.unknown')) {
   const lines = String(stderr || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   const raw = [...lines].reverse().find(l => l.startsWith('ERROR:')) || lines[lines.length - 1] || fallback;
   const known = KNOWN_ERRORS.find(([re]) => re.test(raw));
-  const message = known ? known[1] : raw.replace(/^ERROR:\s*/, '').replace(/^\[[^\]]+\]\s*[\w-]+:\s*/, '');
+  const message = known ? t(known[1]) : raw.replace(/^ERROR:\s*/, '').replace(/^\[[^\]]+\]\s*[\w-]+:\s*/, '');
   return { message, log: lines.slice(-40).join('\n') || fallback };
 }
 
@@ -258,7 +263,7 @@ function mapMetadata(info) {
 }
 
 async function fetchMetadata(url) {
-  if (!isHttpUrl(url)) return { ok: false, error: 'Некорректная ссылка' };
+  if (!isHttpUrl(url)) return { ok: false, error: t('err.badLink') };
   if (metaCache.has(url)) return { ok: true, data: metaCache.get(url) };
 
   const bin = await ytDlpBinary();
@@ -273,20 +278,20 @@ async function fetchMetadata(url) {
   if (metaChild === task.child) metaChild = null;
 
   if (code !== 0) {
-    const { message, log } = describeError(stderr, 'Не удалось получить данные о видео');
+    const { message, log } = describeError(stderr, t('errors.metadataFailed'));
     return { ok: false, error: message, log };
   }
   let info;
   try {
     info = JSON.parse(stdout);
   } catch {
-    return { ok: false, error: 'yt-dlp вернул некорректные данные', log: stdout.slice(0, 2000) };
+    return { ok: false, error: t('err.badData'), log: stdout.slice(0, 2000) };
   }
   if (info._type === 'playlist') {
-    return { ok: false, error: 'Это ссылка на плейлист — вставьте ссылку на конкретное видео' };
+    return { ok: false, error: t('err.playlist') };
   }
   const data = mapMetadata(info);
-  if (data.isLive) return { ok: false, error: 'Прямые трансляции пока не поддерживаются' };
+  if (data.isLive) return { ok: false, error: t('err.live') };
   metaCache.set(url, data);
   if (metaCache.size > 30) metaCache.delete(metaCache.keys().next().value);
   return { ok: true, data };
@@ -320,7 +325,7 @@ async function verifyReleaseSignature(_publisherNames, file) {
   // UnknownError / NotTrusted only mean the chain ends in our own, not publicly trusted root
   const intact = ['Valid', 'UnknownError', 'NotTrusted'].includes(status);
   if (code === 0 && intact && thumbprint === RELEASE_CERT_THUMBPRINT) return null;
-  return `Обновление не прошло проверку подписи: ${status || stderr.trim() || 'нет данных'}`;
+  return t('update.signatureFailed', { status: status || stderr.trim() || t('update.noData') });
 }
 
 async function checkForUpdates() {
@@ -338,8 +343,8 @@ function installUpdate() {
     shell.openExternal(RELEASES_URL);
     return { ok: true };
   }
-  if (updateState.state !== 'ready') return { ok: false, error: 'Обновление ещё не готово' };
-  if (job) return { ok: false, error: 'Дождитесь окончания загрузки' };
+  if (updateState.state !== 'ready') return { ok: false, error: t('update.notReady') };
+  if (job) return { ok: false, error: t('common.waitDownload') };
   autoUpdater.quitAndInstall(true, true);
   return { ok: true };
 }
@@ -389,9 +394,6 @@ const qualityTag = quality => (MAX_HEIGHTS[quality] ? ` [${quality}]` : '');
 
 const INFO_FIELDS = 'title,uploader,channel,webpage_url,upload_date,duration,description,categories,cast,tags';
 
-// "20211209" → "09.12.2021"
-const formatUploadDate = value => (/^\d{8}$/.test(value || '') ? `${value.slice(6, 8)}.${value.slice(4, 6)}.${value.slice(0, 4)}` : '');
-
 // 793 → "13:13", 3725 → "1:02:05"
 function formatDuration(seconds) {
   const total = Math.round(Number(seconds) || 0);
@@ -406,15 +408,15 @@ function formatDuration(seconds) {
 function writeInfoFile(filePath, info) {
   const list = value => (Array.isArray(value) ? value.filter(Boolean).join(', ') : '');
   const lines = [
-    ['Название', info.title],
-    ['Автор канала', info.uploader || info.channel],
-    ['Ссылка', info.webpage_url],
-    ['Дата публикации', formatUploadDate(info.upload_date)],
-    ['Длительность', formatDuration(info.duration)],
+    [t('info.title'), info.title],
+    [t('info.author'), info.uploader || info.channel],
+    [t('info.link'), info.webpage_url],
+    [t('info.date'), formatUploadDate(info.upload_date)],
+    [t('info.duration'), formatDuration(info.duration)],
   ].filter(([, value]) => value).map(([label, value]) => `${label}: ${value}`);
   const description = String(info.description || '').trim();
-  if (description) lines.push('', 'Описание:', description);
-  const lists = [['Категории', list(info.categories)], ['В ролях', list(info.cast)], ['Теги', list(info.tags)]]
+  if (description) lines.push('', `${t('video.description')}:`, description);
+  const lists = [[t('video.categories'), list(info.categories)], [t('video.cast'), list(info.cast)], [t('video.tags'), list(info.tags)]]
     .filter(([, value]) => value);
   if (lists.length) lines.push('', ...lists.map(([label, value]) => `${label}: ${value}`));
 
@@ -635,20 +637,20 @@ async function runJob(current) {
 
   cleanupPartials(current);
   job = null;
-  sendToWindow('download-error', describeError(stderr, `yt-dlp завершился с кодом ${code}`));
+  sendToWindow('download-error', describeError(stderr, t('err.exitCode', { code })));
 }
 
 async function startDownload(options = {}) {
-  if (job) return { ok: false, error: 'Загрузка уже идёт' };
+  if (job) return { ok: false, error: t('err.alreadyRunning') };
   const url = String(options.url || '').trim();
-  if (!isHttpUrl(url)) return { ok: false, error: 'Некорректная ссылка' };
+  if (!isHttpUrl(url)) return { ok: false, error: t('err.badLink') };
 
   const dir = String(options.downloadPath || '').trim() || app.getPath('downloads');
   try {
     fs.mkdirSync(dir, { recursive: true });
     fs.accessSync(dir, fs.constants.W_OK);
   } catch {
-    return { ok: false, error: `Нет доступа к папке: ${dir}` };
+    return { ok: false, error: t('err.folderDenied', { dir }) };
   }
 
   const ffmpeg = await hasFfmpeg();
@@ -753,6 +755,7 @@ function registerIpc() {
         data: loadStore(),
         username: os.userInfo().username,
         downloadsDir: app.getPath('downloads'),
+        systemLanguages: app.getPreferredSystemLanguages(),
         version: app.getVersion(),
         material: supportsMica,
       }
@@ -763,6 +766,11 @@ function registerIpc() {
   ipcMain.on('set-theme', (event, theme) => {
     if (!isTrustedSender(event) || !THEMES.includes(theme)) return;
     nativeTheme.themeSource = theme;
+  });
+
+  // Errors, the close dialog and the .txt file next to the video follow the interface language
+  ipcMain.on('set-language', (event, code) => {
+    if (isTrustedSender(event)) setLanguage(code);
   });
 
   ipcMain.on('store-set', (event, key, value) => {
@@ -783,10 +791,10 @@ function registerIpc() {
   });
 
   handle('engine-update', async () => {
-    if (job) return { ok: false, error: 'Дождитесь окончания загрузки' };
+    if (job) return { ok: false, error: t('common.waitDownload') };
     const target = userYtDlp();
     const { path: current } = await resolveYtDlp();
-    if (!current) return { ok: false, error: 'yt-dlp не найден' };
+    if (!current) return { ok: false, error: t('err.ytDlpMissing') };
     // Update a writable copy in userData — the app folder may be read-only
     if (current !== target) {
       fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -802,7 +810,7 @@ function registerIpc() {
 
   handle('select-folder', async current => {
     const result = await dialog.showOpenDialog(mainWindow, {
-      title: 'Папка для загрузок',
+      title: t('dialog.folderTitle'),
       defaultPath: current && fs.existsSync(current) ? current : app.getPath('downloads'),
       properties: ['openDirectory', 'createDirectory'],
     });
@@ -819,7 +827,7 @@ function registerIpc() {
       const error = await shell.openPath(folderPath);
       return error ? { ok: false, error } : { ok: true };
     }
-    return { ok: false, error: 'Папка не найдена — возможно, файл перемещён или удалён' };
+    return { ok: false, error: t('err.folderNotFound') };
   });
 
   handle('update-state', async () => updateState);
@@ -827,7 +835,7 @@ function registerIpc() {
   handle('update-install', async () => installUpdate());
 
   handle('open-url', async url => {
-    if (!isHttpUrl(url)) return { ok: false, error: 'Некорректная ссылка' };
+    if (!isHttpUrl(url)) return { ok: false, error: t('err.badLink') };
     await shell.openExternal(url);
     return { ok: true };
   });
@@ -840,11 +848,11 @@ function registerIpc() {
   });
 
   handle('copy-image', async url => {
-    if (!isHttpUrl(url)) return { ok: false, error: 'Нет изображения' };
+    if (!isHttpUrl(url)) return { ok: false, error: t('err.noImage') };
     const response = await net.fetch(url);
     if (!response.ok) return { ok: false, error: `HTTP ${response.status}` };
     const image = nativeImage.createFromBuffer(Buffer.from(await response.arrayBuffer()));
-    if (image.isEmpty()) return { ok: false, error: 'Формат изображения не поддерживается' };
+    if (image.isEmpty()) return { ok: false, error: t('err.imageFormat') };
     // re-encode to PNG so every app can paste it
     const png = new Blob([image.toPNG()], { type: 'image/png' });
     await clipboard.write([new ClipboardItem({ 'image/png': png })]);
@@ -886,10 +894,11 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      offscreen: noWindow,
     },
   });
 
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  if (!noWindow) mainWindow.once('ready-to-show', () => mainWindow.show());
 
   // Links never open inside the app window
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
@@ -906,12 +915,12 @@ function createWindow() {
     event.preventDefault();
     const { response } = await dialog.showMessageBox(mainWindow, {
       type: 'question',
-      buttons: ['Закрыть', 'Остаться'],
+      buttons: [t('common.close'), t('dialog.stay')],
       defaultId: 1,
       cancelId: 1,
       title: 'Enterload',
-      message: 'Идёт загрузка видео',
-      detail: 'Если закрыть приложение, загрузка будет отменена.',
+      message: t('dialog.closeTitle'),
+      detail: t('dialog.closeDetail'),
     });
     if (response !== 0) return;
     if (job) {
@@ -945,7 +954,8 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(() => {
-    const { theme } = loadStore();
+    const { theme, language } = loadStore();
+    setLanguage(resolveLanguage(language, app.getPreferredSystemLanguages()));
     nativeTheme.themeSource = THEMES.includes(theme) ? theme : 'system';
     nativeTheme.on('updated', () => {
       if (!mainWindow || mainWindow.isDestroyed()) return;
