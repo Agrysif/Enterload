@@ -1,0 +1,3 @@
+<!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
+
+Это проект Electron + React для загрузки видео с помощью `yt-dlp`. Интерфейс минималистичный, в духе iOS: нейтральные цвета и один акцентный цвет, светлая и тёмная темы. Все цвета и размеры — CSS-переменные в начале `src/renderer/styles.css`, акцент — `--accent`. Главный процесс — `src/main.js`, мост к интерфейсу — `src/preload.js` (`window.enterload`), интерфейс — `src/renderer` (страницы в `pages/`, базовые компоненты в `ui.jsx`).
