@@ -34,7 +34,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     const avatar = document.querySelector('.sidebar-footer .avatar'); if (avatar) avatar.textContent = 'A';
     document.querySelectorAll('.nav-badge:not(.activity)').forEach(el => el.remove());
     document.querySelectorAll('.row-value').forEach(el => { if (el.textContent.startsWith('promo-')) el.textContent = 'Downloads'; });
-    document.querySelectorAll('.row-path').forEach(el => { el.textContent = 'C:\\Users\\Agrysif\\Downloads'; });
+    document.querySelectorAll('.row-path').forEach(el => { el.textContent = 'C:\\\\Users\\\\Agrysif\\\\Downloads'; });
   })()`);
   const TABS = ['download', 'history', 'stats', 'errors', 'settings'];
   const nav = async tab => {
