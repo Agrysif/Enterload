@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Enterload trailer</title>
+<!--
+  Every frame is built by render(t) from time alone, without CSS animations or timers,
+  so rendering is frame-accurate and repeatable (render.cjs captures frames into ffmpeg).
+  Grid: the track is 140 BPM, phrases fall on K(n) = 0.443 + n bars.
+  Story: the whole film is one download. It starts and ends on a caret in the link field.
+-->
+<style>
+html, body { margin: 0; background: #000; overflow: hidden; }
+#stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: #07080b; }
+#stage > * { position: absolute; left: 0; top: 0; }
+#world { width: 1920px; height: 1080px; perspective: 2000px; perspective-origin: 50% 46%; }
+.slab { position: absolute; left: 0; top: 0; width: 1240px; height: 820px; display: none; box-sizing: border-box; border: 5px solid #f3f4f6; background: #000; overflow: hidden; }
+.slab img { display: block; width: 100%; height: 100%; }
+.slab .scan { position: absolute; left: 0; right: 0; height: 180px; top: -180px; }
+#mark { width: 16px; height: 1px; image-rendering: pixelated; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="bg" width="1920" height="1080"></canvas>
+  <div id="world"></div>
+  <canvas id="fg" width="1920" height="1080"></canvas>
+  <canvas id="mark" width="16" height="1"></canvas>
+</div>
+<script src="assets/env.js"></script>
+<script>
+'use strict';
+const LANG = new URLSearchParams(location.search).get('lang') === 'ru' ? 'ru' : 'en';
+
+// ─── copy ───────────────────────────────────────────────────────────
+const COPY = {
+  en: {
+    idle: 'IDLE', analyzing: 'ANALYZING', downloading: 'DOWNLOADING', paused: 'PAUSED', resuming: 'RESUMING', done: 'DONE',
+    input: 'INPUT', analyze: 'ANALYZE', sources: 'SOURCES', download: 'DOWNLOAD', pause: 'PAUSE', run: 'RUN', interface: 'INTERFACE', output: 'OUTPUT', finish: 'FINISH',
+    placeholder: 'PASTE A LINK', oneLink: 'ONE LINK.', thatsAll: "THAT'S ALL IT TAKES.",
+    allAbout: ['EVERYTHING', 'ABOUT THE VIDEO'],
+    meta: [['RESOLUTION', '3840×2160'], ['FRAME RATE', '60 FPS'], ['SIZE', '≈ 743 MB'], ['LENGTH', '10:35'], ['VIEWS', '23.5M'], ['LICENSE', 'CC BY']],
+    moreSites: '+1000 SITES', siteHint: 'SITE COLOR',
+    speedLabel: 'SPEED', fullSpeed: 'FULL SPEED',
+    pauseWord: 'PAUSE.', anyTime: 'ANY TIME.', nothingLost: 'NOTHING IS LOST.', saved: 'SAVED', resumingWord: 'RESUMING',
+    tagline: 'VIDEO DOWNLOADER FOR WINDOWS',
+    upTo: 'UP TO', fpsNote: '60 FPS · BEST QUALITY THE SITE HAS',
+    soundOnly: ['OR JUST', 'THE SOUND'],
+    ffmpegHead: ['FFMPEG', 'INSIDE'], ffmpegSub: 'NOTHING ELSE TO INSTALL', appBox: 'ENTERLOAD.EXE', engine: 'ENGINE', merge: 'MERGE',
+    shots: { download: ['PAUSE. RESUME.', 'LIVE SPEED CHART'], history: ['HISTORY', 'SEARCH · FILTERS · BY DAY'], stats: ['STATISTICS', 'EVERY MEGABYTE COUNTED'], themes: ['LIGHT · DARK', '8 ACCENT COLORS'], site: ['SITE COLOR', 'THE APP TAKES THE COLOR OF THE LINK'] },
+    folder: ['ONE FOLDER.', 'THREE FILES.'], video: 'VIDEO', cover: 'COVER', info: 'DESCRIPTION',
+    infoLines: ['TITLE', 'AUTHOR', 'LINK', 'CATEGORIES', 'TAGS'],
+    updates: ['UPDATES', 'ITSELF'], steps: ['NEW VERSION', 'BACKGROUND DOWNLOAD', 'RESTART. DONE.'],
+    recap: ['4K', 'MP3', 'PAUSE', 'FFMPEG', 'HISTORY', 'STATS', 'THEMES', 'AUTO-UPDATE', 'FREE'],
+    doneWord: 'DONE.', free: 'FREE FOR WINDOWS 10 / 11',
+  },
+  ru: {
+    idle: 'ОЖИДАНИЕ', analyzing: 'АНАЛИЗ', downloading: 'СКАЧИВАНИЕ', paused: 'ПАУЗА', resuming: 'ВОЗОБНОВЛЕНИЕ', done: 'ГОТОВО',
+    input: 'ВВОД', analyze: 'АНАЛИЗ', sources: 'ИСТОЧНИКИ', download: 'ЗАГРУЗКА', pause: 'ПАУЗА', run: 'ПУСК', interface: 'ИНТЕРФЕЙС', output: 'РЕЗУЛЬТАТ', finish: 'ФИНИШ',
+    placeholder: 'ВСТАВЬТЕ ССЫЛКУ', oneLink: 'ОДНА ССЫЛКА.', thatsAll: 'БОЛЬШЕ НИЧЕГО НЕ НУЖНО.',
+    allAbout: ['ВСЁ О ВИДЕО', 'С ПЕРВОГО ВЗГЛЯДА'],
+    meta: [['РАЗРЕШЕНИЕ', '3840×2160'], ['ЧАСТОТА', '60 FPS'], ['РАЗМЕР', '≈ 743 МБ'], ['ДЛИТЕЛЬНОСТЬ', '10:35'], ['ПРОСМОТРЫ', '23,5 МЛН'], ['ЛИЦЕНЗИЯ', 'CC BY']],
+    moreSites: '+1000 САЙТОВ', siteHint: 'ЦВЕТ САЙТА',
+    speedLabel: 'СКОРОСТЬ', fullSpeed: 'НА ПОЛНОЙ СКОРОСТИ',
+    pauseWord: 'ПАУЗА.', anyTime: 'В ЛЮБОЙ МОМЕНТ.', nothingLost: 'НИЧЕГО НЕ ПРОПАДЁТ.', saved: 'СОХРАНЕНО', resumingWord: 'ВОЗОБНОВЛЯЕМ',
+    tagline: 'ЗАГРУЗЧИК ВИДЕО ДЛЯ WINDOWS',
+    upTo: 'ДО', fpsNote: '60 FPS · ЛУЧШЕЕ КАЧЕСТВО, ЧТО ЕСТЬ НА САЙТЕ',
+    soundOnly: ['ИЛИ ТОЛЬКО', 'ЗВУК'],
+    ffmpegHead: ['FFMPEG', 'ВНУТРИ'], ffmpegSub: 'БОЛЬШЕ НИЧЕГО СТАВИТЬ НЕ НАДО', appBox: 'ENTERLOAD.EXE', engine: 'ДВИЖОК', merge: 'СКЛЕЙКА',
+    shots: { download: ['ПАУЗА. ПРОДОЛЖИТЬ.', 'ЖИВОЙ ГРАФИК СКОРОСТИ'], history: ['ИСТОРИЯ', 'ПОИСК · ФИЛЬТРЫ · ПО ДНЯМ'], stats: ['СТАТИСТИКА', 'КАЖДЫЙ МЕГАБАЙТ НА СЧЕТУ'], themes: ['СВЕТЛАЯ · ТЁМНАЯ', '8 АКЦЕНТНЫХ ЦВЕТОВ'], site: ['ЦВЕТ САЙТА', 'ПРИЛОЖЕНИЕ БЕРЁТ ЦВЕТ ССЫЛКИ'] },
+    folder: ['ОДНА ПАПКА.', 'ТРИ ФАЙЛА.'], video: 'ВИДЕО', cover: 'ОБЛОЖКА', info: 'ОПИСАНИЕ',
+    infoLines: ['НАЗВАНИЕ', 'АВТОР', 'ССЫЛКА', 'КАТЕГОРИИ', 'ТЕГИ'],
+    updates: ['ОБНОВЛЯЕТСЯ', 'САМО'], steps: ['НОВАЯ ВЕРСИЯ', 'ЗАГРУЗКА В ФОНЕ', 'ПЕРЕЗАПУСК. ГОТОВО.'],
+    recap: ['4K', 'MP3', 'ПАУЗА', 'FFMPEG', 'ИСТОРИЯ', 'СТАТИСТИКА', 'ТЕМЫ', 'ОБНОВЛЕНИЯ', 'БЕСПЛАТНО'],
+    doneWord: 'ГОТОВО.', free: 'БЕСПЛАТНО ДЛЯ WINDOWS 10 / 11',
+  },
+}[LANG];
+
+// ─── time and rhythm ────────────────────────────────────────────────
+const W = 1920, H = 1080;
+const DURATION = 52.9;
+const BEAT = 60 / 140, BAR = BEAT * 4;
+const K = n => 0.443 + n * BAR;
+const INTRO_HITS = [0.43, 0.71, 0.82, 0.94, 1.05, 1.16, 1.22, 1.27, 1.47];
+const END_TICKS = [50.16, 50.58, 51.01, 51.44];
+const BIG = [K(4), K(8), K(10), K(14), K(18), K(26), 48.74];
+const CUTS = [K(4), K(6), K(8), K(10), ...Array.from({ length: 12 }, (_, i) => K(14 + i)), K(26), 48.74];
+
+// ─── math ───────────────────────────────────────────────────────────
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const p = (t, a, b) => clamp((t - a) / (b - a));
+const lerp = (a, b, x) => a + (b - a) * x;
+const E = {
+  outExpo: x => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x)),
+  outCubic: x => 1 - Math.pow(1 - x, 3),
+  inCubic: x => x * x * x,
+  inOut: x => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2),
+  outBack: x => { const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); },
+};
+const hit = (t, list, k) => { let s = 0; for (const h of list) if (t >= h) s = Math.max(s, Math.exp(-(t - h) * k)); return s; };
+const hash = n => { const x = Math.sin(n * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
+const env = (t, key = 'rms') => {
+  if (!window.ENV) return .3;
+  const a = window.ENV[key];
+  const i = t / window.ENV.hop;
+  const f = Math.floor(i);
+  return lerp(a[clamp(f, 0, a.length - 1)] || 0, a[clamp(f + 1, 0, a.length - 1)] || 0, i - f);
+};
+
+// The film is one download: frozen during the pause, 100% on the last hit
+function progress(t) {
+  if (t < K(4)) return 0;
+  if (t < K(8)) return lerp(0, 12, p(t, K(4), K(8)));
+  if (t < K(10)) return lerp(12, 47, p(t, K(8), K(10)));
+  if (t < K(14)) return 47;
+  if (t < K(26)) return lerp(47, 88, p(t, K(14), K(26)));
+  return lerp(88, 100, E.inOut(p(t, K(26), 48.5)));
+}
+
+// ─── drawing kit ────────────────────────────────────────────────────
+const INK = '#07080b', INK2 = '#101218', PAPER = '#f3f4f6', MUTE = '#808796', BLUE = '#0a84ff';
+const $ = id => document.getElementById(id);
+const bgCtx = $('bg').getContext('2d');
+const fgCtx = $('fg').getContext('2d');
+let ctx = fgCtx;
+let accent = BLUE;
+
+function setFont(c, size, kind, weight) {
+  c.font = kind === 'mono' ? `${weight || 400} ${size}px "Cascadia Mono", Consolas, monospace` : `${weight || 700} ${size}px Bahnschrift, "Segoe UI", sans-serif`;
+  c.fontStretch = kind === 'mono' ? 'normal' : 'condensed';
+  c.letterSpacing = '0px';
+}
+function text(s, x, y, size, o = {}) {
+  ctx.save();
+  setFont(ctx, size, o.kind, o.weight);
+  if (o.ls) ctx.letterSpacing = `${o.ls}px`;
+  ctx.fillStyle = o.color || PAPER;
+  ctx.globalAlpha = o.alpha ?? 1;
+  ctx.textAlign = o.align || 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillText(s, x, y);
+  ctx.restore();
+}
+const mono = (s, x, y, size = 22, o = {}) => text(s, x, y, size, { kind: 'mono', color: MUTE, ls: 1.5, ...o });
+function measure(s, size, kind, ls = 0) {
+  ctx.save();
+  setFont(ctx, size, kind);
+  if (ls) ctx.letterSpacing = `${ls}px`;
+  const w = ctx.measureText(s).width;
+  ctx.restore();
+  return w;
+}
+const fit = (s, maxW, size, kind) => Math.min(size, size * maxW / measure(s, size, kind));
+
+// A word rises out of a mask
+function head(s, x, y, size, t, t0, o = {}) {
+  const q = E.outExpo(p(t, t0, t0 + .42));
+  if (q <= 0) return;
+  const w = measure(s, size);
+  const left = o.align === 'right' ? x - w : o.align === 'center' ? x - w / 2 : x;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(left - 24, y - size * .98, w + 48, size * 1.2);
+  ctx.clip();
+  text(s, x, y + (1 - q) * size * 1.2, size, o);
+  ctx.restore();
+}
+function card(x, y, w, h, o = {}) {
+  const sh = o.sh ?? 12;
+  if (sh) { ctx.fillStyle = o.shColor || accent; ctx.fillRect(x + sh, y + sh, w, h); }
+  ctx.fillStyle = o.fill || INK2;
+  ctx.fillRect(x, y, w, h);
+  if (o.lw !== 0) { ctx.strokeStyle = o.stroke || PAPER; ctx.lineWidth = o.lw || 4; ctx.strokeRect(x, y, w, h); }
+}
+// A paper label with a hard shadow
+function tag(s, x, y, size, o = {}) {
+  const padX = size * .42, h = size * 1.5;
+  const w = measure(s, size, o.kind, o.ls) + padX * 2;
+  const left = o.align === 'right' ? x - w : x;
+  card(left, y, w, h, { fill: o.bg || PAPER, lw: 0, sh: o.sh ?? 8, shColor: o.shColor || accent });
+  text(s, left + padX, y + size * 1.12, size, { color: o.fg || INK, kind: o.kind, ls: o.ls, weight: o.weight });
+  return w;
+}
+function caret(x, y, h, on, color = PAPER) {
+  if (!on) return;
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, Math.max(8, h * .12), h);
+}
+// A band crosses the frame and hides the cut right at the moment of the hit
+function wipe(t, at, color) {
+  const d = t - (at - .1);
+  if (d < 0 || d > .26) return;
+  const lead = W * E.inOut(clamp(d / .1));
+  const tail = W * E.inOut(clamp((d - .1) / .16));
+  ctx.fillStyle = color;
+  ctx.fillRect(tail, 0, lead - tail, H);
+}
+function chevron(x, y, s, color) {
+  ctx.strokeStyle = color; ctx.lineWidth = 8;
+  ctx.beginPath(); ctx.moveTo(x, y - s); ctx.lineTo(x + s, y); ctx.lineTo(x, y + s); ctx.stroke();
+}
+
+// ─── images ─────────────────────────────────────────────────────────
+const SHOTS = ['download', 'download-active', 'download-site', 'history', 'history-light', 'stats', 'stats-purple', 'settings', 'settings-green'];
+const slabs = {};
+const world = $('world');
+for (const name of SHOTS) {
+  const el = document.createElement('div');
+  el.className = 'slab';
+  el.innerHTML = `<img src="assets/shots/${name}.png"><div class="scan"></div>`;
+  world.appendChild(el);
+  slabs[name] = el;
+}
+const logo = new Image();
+logo.src = '../icon.svg';
+const coverSource = new Image();
+coverSource.src = 'assets/shots/download.png';
+
+function slab(name, o) {
+  const el = slabs[name];
+  el.style.display = 'block';
+  const s = o.scale ?? 1;
+  el.style.transform = `translate(${(o.x ?? 960) - 620}px, ${(o.y ?? 540) - 410}px) translateZ(${o.z ?? 0}px) rotateX(${o.rx ?? 0}deg) rotateY(${o.ry ?? 0}deg) rotateZ(${o.rz ?? 0}deg) scale(${s})`;
+  el.style.boxShadow = `${o.sh ?? 22}px ${o.sh ?? 22}px 0 ${o.shadow || accent}`;
+  el.style.zIndex = o.layer ?? 1;
+  const scan = el.querySelector('.scan');
+  if (o.scan != null) {
+    scan.style.display = 'block';
+    scan.style.transform = `translateY(${o.scan * 1000}px)`;
+    scan.style.background = `linear-gradient(180deg, transparent, ${accent}33 80%, ${accent})`;
+  } else scan.style.display = 'none';
+}
+
+// ─── frame: the HUD that stays over the whole film ─────────────────
+const SECTIONS = ['input', 'analyze', 'sources', 'download', 'pause', 'run', 'interface', 'output', 'finish'];
+let STATE = 'idle', SECTION = '', HUD_INK = false;
+function drawHud(t) {
+  const c = HUD_INK ? INK : PAPER;
+  const dim = HUD_INK ? 'rgba(7,8,11,.62)' : MUTE;
+  const m = 44;
+  ctx.strokeStyle = c; ctx.lineWidth = 3; ctx.globalAlpha = .7;
+  [[m, m, 1, 1], [W - m, m, -1, 1], [m, H - m, 1, -1], [W - m, H - m, -1, -1]].forEach(([x, y, a, b]) => {
+    ctx.beginPath(); ctx.moveTo(x + 26 * a, y); ctx.lineTo(x, y); ctx.lineTo(x, y + 26 * b); ctx.stroke();
+  });
+  ctx.globalAlpha = 1;
+  mono('ENTERLOAD // V1.2.0', 76, 84, 20, { color: c });
+  if (SECTION) mono(SECTION, 960, 84, 20, { color: dim, align: 'center' });
+  const f = Math.floor(t * 60);
+  const stamp = `${String(Math.floor(t)).padStart(2, '0')}:${String(f % 60).padStart(2, '0')}`;
+  mono(`140 BPM  ${stamp}`, W - 76, 84, 20, { color: dim, align: 'right' });
+  for (let i = 0; i < 14; i++) {
+    const v = env(t - i * .035, 'low');
+    ctx.fillStyle = c;
+    ctx.globalAlpha = .75;
+    ctx.fillRect(W - 420 + i * 9, 84 - 2 - v * 20, 5, 2 + v * 20);
+  }
+  ctx.globalAlpha = 1;
+
+  const y = H - 74, x0 = 76, x1 = W - 250;
+  const value = progress(t);
+  mono(COPY[STATE], x0, y - 16, 20, { color: c });
+  ctx.fillStyle = HUD_INK ? 'rgba(7,8,11,.2)' : 'rgba(243,244,246,.14)';
+  ctx.fillRect(x0, y, x1 - x0, 12);
+  ctx.fillStyle = HUD_INK ? INK : accent;
+  ctx.fillRect(x0, y, (x1 - x0) * value / 100, 12);
+  for (let i = 0; i <= 20; i++) { ctx.fillStyle = c; ctx.globalAlpha = i % 5 ? .22 : .6; ctx.fillRect(x0 + (x1 - x0) * i / 20 - 1, y + 16, 2, i % 5 ? 6 : 10); }
+  ctx.globalAlpha = 1;
+  text(`${String(Math.floor(value)).padStart(3, '0')}%`, W - 76, y + 13, 58, { color: c, align: 'right' });
+}
+
+// ─── background: a dot grid, nothing else ──────────────────────────
+function drawBg(t, color = INK, dots = 'rgba(243,244,246,.09)') {
+  bgCtx.fillStyle = color;
+  bgCtx.fillRect(0, 0, W, H);
+  const step = 60, off = (t * 6) % step;
+  bgCtx.fillStyle = dots;
+  for (let x = -step; x < W + step; x += step) for (let y = 0; y < H + step; y += step) bgCtx.fillRect(x + off, y, 2, 2);
+}
+
+// ─── link field, shared by the first and the last scene ────────────
+function linkField(t, x, y, w, h, value, caretOn, o = {}) {
+  card(x, y, w, h, { sh: 14, fill: INK2 });
+  ctx.strokeStyle = MUTE; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  const cx = x + 56, cy = y + h / 2;
+  ctx.beginPath(); ctx.arc(cx - 7, cy + 7, 11, Math.PI * .25, Math.PI * 1.4); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx + 7, cy - 7, 11, Math.PI * 1.25, Math.PI * .4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx - 6, cy + 6); ctx.lineTo(cx + 6, cy - 6); ctx.stroke();
+  ctx.lineCap = 'butt';
+  const size = o.size || 46;
+  const tx = x + 106, base = y + h / 2 + size * .35;
+  if (value) mono(value, tx, base, size, { color: PAPER, ls: 0 });
+  else mono(o.placeholder || '', tx + 26, base, size * .78, { color: 'rgba(128,135,150,.75)', ls: 1 });
+  caret(value ? tx + measure(value, size, 'mono') + 8 : tx, y + h / 2 - size * .62, size * 1.24, caretOn);
+}
+
+// ─── scenes ─────────────────────────────────────────────────────────
+const blink = (t, rate = 1.4) => (t * rate) % 1 < .55;
+
+function sceneCold(t) {
+  INTRO_HITS.forEach((h, i) => {
+    const d = t - h;
+    if (d < 0 || d > .1) return;
+    ctx.globalAlpha = 1 - d / .1;
+    for (let j = 0; j < 5; j++) {
+      ctx.fillStyle = j === 0 ? accent : PAPER;
+      ctx.fillRect(hash(i * 13 + j) * W * .6, hash(i * 7 + j) * H, 220 + hash(i * 17 + j) * 900, 6 + hash(i * 11 + j) * 42);
+    }
+    ctx.globalAlpha = 1;
+  });
+  if (t > 1.5) caret(956, 508, 64, blink(t - 1.5), PAPER);
+}
+
+function sceneInput(t) {
+  const a = K(1);
+  const q = E.outExpo(p(t, a, a + .45));
+  const w = lerp(8, 1240, q), h = lerp(64, 132, q);
+  const x = 960 - w / 2, y = 590 - h / 2;
+  const url = 'https://youtu.be/aqz-KE-bpKQ';
+  const typed = Math.floor(url.length * clamp((t - K(3.5)) / .42));
+  const pressed = t > K(3.5) && t < K(3.5) + .22;
+  if (q < .98) { card(x, y, w, h, { sh: 14 * q }); caret(956, y + h / 2 - 32, 64, true); } else linkField(t, x, y, w, h, typed > 0 ? url.slice(0, typed) : '', blink(t - a), { placeholder: COPY.placeholder });
+  head(COPY.oneLink, 340, 460, 190, t, K(2));
+  if (t > K(3)) {
+    const k = E.outBack(p(t, K(3), K(3) + .3));
+    const dy = pressed ? 8 : 0;
+    ctx.save();
+    ctx.translate(0, (1 - k) * 60 + dy);
+    ctx.globalAlpha = clamp(k);
+    tag('CTRL', 340, 708, 38, { kind: 'mono', sh: pressed ? 2 : 8 });
+    mono('+', 512, 750, 38, { color: PAPER });
+    tag('V', 560, 708, 38, { kind: 'mono', sh: pressed ? 2 : 8 });
+    ctx.restore();
+    if (t > K(3.5)) head(COPY.thatsAll, 1580, 758, 44, t, K(3.5), { align: 'right', color: MUTE });
+  }
+}
+
+function sceneAnalyze(t) {
+  const a = K(4);
+  const q = E.outExpo(p(t, a, a + .5));
+  slab('download', { x: lerp(1560, 1300, q), y: 510, scale: .88, rx: 3, ry: lerp(-30, -15, q) + (t - a) * .6, z: lerp(-500, 0, q), scan: (t - a) % 2 / 2 });
+  const headSize = fit(COPY.allAbout[1], 560, 100);
+  head(COPY.allAbout[0], 86, 262, headSize, t, a + .05);
+  head(COPY.allAbout[1], 86, 262 + headSize, headSize, t, a + .16);
+  COPY.meta.forEach(([label, value], i) => {
+    const at = a + .5 + i * BEAT;
+    const q2 = E.outExpo(p(t, at, at + .3));
+    if (q2 <= 0) return;
+    const y = 440 + i * 66;
+    ctx.globalAlpha = q2;
+    ctx.fillStyle = 'rgba(243,244,246,.2)';
+    ctx.fillRect(86, y + 16, 470 * q2, 2);
+    mono(label, 86, y, 20);
+    text(value, 556, y + 4, 40, { align: 'right' });
+    ctx.globalAlpha = 1;
+  });
+}
+
+const SITES = [
+  ['YOUTUBE', '#ff0033', '#fff'], ['VK', '#0077ff', '#fff'], ['TWITCH', '#9146ff', '#fff'], ['RUTUBE', '#ed143b', '#fff'],
+  ['VIMEO', '#1ab7ea', INK], ['TIKTOK', '#fe2c55', '#fff'], ['SOUNDCLOUD', '#ff5500', INK], ['+', PAPER, INK],
+];
+const siteIndex = t => clamp(Math.floor((t - K(6)) / BEAT), 0, SITES.length - 1);
+function sceneSites(t) {
+  const i = siteIndex(t);
+  const [name, color, ink] = SITES[i];
+  const label = name === '+' ? COPY.moreSites : name;
+  const local = t - (K(6) + i * BEAT);
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 210, W, 600);
+  card(76, 158, 300, 84, { fill: INK, sh: 8, shColor: PAPER, lw: 4 });
+  mono(`${String(i + 1).padStart(2, '0')} / 08`, 112, 212, 30, { color: PAPER });
+  const size = fit(label, 1740, 440);
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, 210, W, 600); ctx.clip();
+  text(label, 86, 510 + size * .36 + (1 - E.outExpo(clamp(local / .18))) * 200, size, { color: ink });
+  ctx.restore();
+  mono(`${COPY.siteHint} → ${color.toUpperCase()}`, W - 86, 782, 24, { color: ink, align: 'right' });
+}
+
+function speedAt(t) { return 8 + env(t, 'low') * 32; }
+function sceneDownload(t) {
+  const a = K(8);
+  const value = Math.floor(progress(t));
+  const q = E.outExpo(p(t, a, a + .4));
+  ctx.save();
+  ctx.beginPath(); ctx.rect(70, 170, 900, 700); ctx.clip();
+  text(`${value}`, 86, 690 + (1 - q) * 700, 560, {});
+  ctx.restore();
+  text('%', 86 + measure(`${value}`, 560) + 18, 470, 150, { color: accent, alpha: q });
+  head(COPY.fullSpeed, 86, 830, 62, t, a + .2);
+
+  const x = 980, y = 190, w = 860, h = 640;
+  const q2 = E.outExpo(p(t, a + .1, a + .55));
+  ctx.save();
+  ctx.translate((1 - q2) * 900, 0);
+  card(x, y, w, h);
+  mono(COPY.speedLabel, x + 34, y + 58, 24);
+  const now = speedAt(t);
+  text(`${now.toFixed(1)} ${LANG === 'ru' ? 'МБ/С' : 'MB/S'}`, x + w - 34, y + 72, 68, { align: 'right' });
+  const n = 26, gap = 8, bw = (w - 68 - gap * (n - 1)) / n, base = y + h - 40, top = y + 120;
+  for (let g = 0; g <= 4; g++) { ctx.fillStyle = 'rgba(243,244,246,.12)'; ctx.fillRect(x + 34, lerp(top, base, g / 4), w - 68, 2); }
+  const stepT = BEAT / 3;
+  const shift = Math.floor(t / stepT);
+  for (let i = 0; i < n; i++) {
+    const tt = (shift - (n - 1 - i)) * stepT;
+    if (tt < a - .1) continue;
+    const v = clamp(speedAt(tt) / 44 + (hash(shift - (n - 1 - i)) - .5) * .12);
+    ctx.fillStyle = i === n - 1 ? PAPER : accent;
+    const bh = (base - top) * v;
+    ctx.fillRect(x + 34 + i * (bw + gap), base - bh, bw, bh);
+  }
+  ctx.restore();
+}
+
+function pauseBars(t, cx, cy, h, morph) {
+  // two bars turn into a play triangle
+  const w = h * .3, gap = h * .2;
+  const L = [[cx - gap / 2 - w, cy - h / 2], [cx - gap / 2, cy - h / 2], [cx - gap / 2, cy + h / 2], [cx - gap / 2 - w, cy + h / 2]];
+  const R = [[cx + gap / 2, cy - h / 2], [cx + gap / 2 + w, cy - h / 2], [cx + gap / 2 + w, cy + h / 2], [cx + gap / 2, cy + h / 2]];
+  const left = cx - h * .36, right = cx + h * .5;
+  const midX = (left + right) / 2;
+  const TL = [[left, cy - h / 2], [midX, cy - h / 4], [midX, cy + h / 4], [left, cy + h / 2]];
+  const TR = [[midX, cy - h / 4], [right, cy], [right, cy], [midX, cy + h / 4]];
+  const mix = (a, b) => a.map((v, i) => [lerp(v[0], b[i][0], morph), lerp(v[1], b[i][1], morph)]);
+  const poly = (pts, color, dx = 0, dy = 0) => {
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x + dx, y + dy) : ctx.moveTo(x + dx, y + dy)));
+    ctx.closePath(); ctx.fillStyle = color; ctx.fill();
+  };
+  const l = mix(L, TL), r = mix(R, TR);
+  poly(l, accent, 18, 18); poly(r, accent, 18, 18);
+  if (morph > 0) { ctx.fillStyle = PAPER; ctx.fillRect(midX - 2, cy - h / 4 * morph, 4, h / 2 * morph); }
+  poly(l, PAPER); poly(r, PAPER);
+  if (morph >= 1) { ctx.fillStyle = PAPER; ctx.fillRect(midX - 2, cy - h / 4 + 2, 4, h / 2 - 4); }
+}
+
+function scenePause(t) {
+  const a = K(10);
+  const q = E.outExpo(p(t, a, a + .3));
+  const morph = E.inOut(p(t, K(13), K(13) + 1.2));
+  pauseBars(t, 470, 480, 520 * q, morph);
+  const rows = [
+    [COPY.pauseWord, K(10), 150, PAPER],
+    [COPY.anyTime, K(11), 92, PAPER],
+    [COPY.nothingLost, K(12), 92, accent],
+  ];
+  rows.forEach(([s, at, size, color], i) => head(s, 860, [370, 496, 612][i], fit(s, 950, size), t, at, { color }));
+  if (t > K(12)) {
+    const x = 860, y = 666, w = 950, h = 62;
+    const q2 = E.outExpo(p(t, K(12) + .1, K(12) + .6));
+    ctx.strokeStyle = PAPER; ctx.lineWidth = 4; ctx.strokeRect(x, y, w, h);
+    ctx.fillStyle = accent; ctx.fillRect(x + 8, y + 8, (w - 16) * .47 * q2, h - 16);
+    mono(`47% ${COPY.saved}`, x + w - 18, y + 41, 24, { color: PAPER, align: 'right' });
+  }
+  if (t > K(13)) {
+    const dots = '.'.repeat(1 + Math.floor((t - K(13)) / BEAT) % 3);
+    mono(`${COPY.resumingWord}${dots}`, 860, 800, 34, { color: PAPER, alpha: E.outCubic(p(t, K(13), K(13) + .3)) });
+  }
+}
+
+function sceneHero(t) {
+  const a = K(14);
+  const q = E.outExpo(p(t, a, a + .5));
+  const size = 372;
+  const word = 'ENTERLOAD';
+  const w = measure(word, size);
+  const x = 960 - w / 2;
+  ctx.fillStyle = BLUE; ctx.fillRect(0, 0, 0, 0);
+  text(word, x + 16, 646 + 16 + (1 - q) * 500, size, { color: BLUE });
+  text(word, x, 646 + (1 - q) * 500, size, { color: INK });
+  if (logo.complete) ctx.drawImage(logo, 86, 124, 128, 128);
+  const q2 = E.outExpo(p(t, a + .35, a + .75));
+  ctx.fillStyle = INK; ctx.fillRect(x + 6, 716, (w - 12) * q2, 12);
+  head(COPY.tagline, 960, 830, 78, t, a + .4, { color: INK, align: 'center' });
+}
+
+function scene4k(t) {
+  const a = K(15);
+  const head4k = 330;
+  head(COPY.upTo, 86, 420, 120, t, a);
+  head('4K', 86, 720, head4k, t, a + .1, { color: accent });
+  mono(COPY.fpsNote, 90, 820, 22, { color: PAPER });
+  const x0 = 760, y0 = 880, s = 1060 / 3840;
+  [[640, 360, '360P'], [1280, 720, '720P'], [1920, 1080, '1080P'], [2560, 1440, '1440P'], [3840, 2160, '2160P · 4K']].forEach(([rw, rh, label], i) => {
+    const at = a + i * BEAT * .5;
+    const q = E.outExpo(p(t, at, at + .3));
+    if (q <= 0) return;
+    const w = rw * s * q, h = rh * s * q;
+    const top = i === 4;
+    if (top) { ctx.fillStyle = `${accent}22`; ctx.fillRect(x0, y0 - h, w, h); }
+    ctx.strokeStyle = top ? accent : PAPER; ctx.lineWidth = top ? 6 : 3;
+    ctx.strokeRect(x0, y0 - h, w, h);
+    if (q > .9) mono(label, x0 + 12, y0 - h + 30, i < 2 ? 16 : 20, { color: top ? accent : PAPER });
+  });
+}
+
+function sceneSound(t) {
+  const a = K(16);
+  head(COPY.soundOnly[0], 86, 300, 128, t, a);
+  head(COPY.soundOnly[1], 86, 424, 128, t, a + .1);
+  const w1 = tag('MP3', W - 86, 196, 96, { align: 'right', sh: 12 });
+  const n = 82, bw = 16, gap = (W - 172 - n * bw) / (n - 1);
+  for (let i = 0; i < n; i++) {
+    const v = env(t + (i - n) * .03, 'rms');
+    const h = 40 + Math.pow(v, .8) * 300 * (.55 + hash(i) * .45);
+    const q = E.outExpo(p(t, a + i * .004, a + i * .004 + .3));
+    ctx.fillStyle = i % 9 === 0 ? PAPER : accent;
+    ctx.fillRect(86 + i * (bw + gap), 680 - h * q / 2, bw, h * q);
+  }
+  return w1;
+}
+
+function sceneFfmpeg(t) {
+  const a = K(17);
+  head(COPY.ffmpegHead[0], 86, 400, 190, t, a);
+  head(COPY.ffmpegHead[1], 86, 570, 190, t, a + .1, { color: accent });
+  head(COPY.ffmpegSub, 86, 680, fit(COPY.ffmpegSub, 760, 56), t, a + .3);
+  const x = 930, y = 210, w = 900, h = 640;
+  const q = E.outExpo(p(t, a, a + .35));
+  ctx.save();
+  ctx.translate((1 - q) * 1000, 0);
+  card(x, y, w, h, { sh: 18 });
+  mono(COPY.appBox, x + 34, y + 58, 26, { color: PAPER });
+  [[COPY.engine, 'yt-dlp', 0], [COPY.merge, 'ffmpeg', 1], ['UI', 'electron', 2]].forEach(([label, name, i]) => {
+    const at = a + .2 + i * BEAT;
+    const q2 = E.outBack(p(t, at, at + .3));
+    if (q2 <= 0) return;
+    const bx = x + 34, by = y + 96 + i * 176, bw = w - 68, bh = 156;
+    const lit = i === 1;
+    card(bx, by + (1 - q2) * 70, bw, bh, { fill: lit ? accent : INK, sh: 0, lw: 3 });
+    mono(label, bx + 26, by + (1 - q2) * 70 + 46, 22, { color: lit ? '#fff' : MUTE });
+    text(name, bx + 26, by + (1 - q2) * 70 + 130, 78, { color: lit ? '#fff' : PAPER });
+  });
+  ctx.restore();
+}
+
+function shotScene(t, a, list, copy) {
+  const q = E.outExpo(p(t, a, a + .4));
+  list.forEach((s, i) => {
+    const d = i * .08;
+    const k = E.outExpo(p(t, a + d, a + d + .45));
+    slab(s.name, {
+      x: lerp(s.x + (s.fromX ?? 500), s.x, k), y: s.y ?? 500, scale: s.scale ?? .86,
+      rx: s.rx ?? 4, ry: (s.ry ?? -12) + (1 - k) * -18 + (t - a) * .7, rz: s.rz ?? 0,
+      z: lerp(-500, s.z ?? 0, k), layer: s.layer ?? i + 1, shadow: s.shadow,
+    });
+  });
+  const size = fit(copy[0], 760, 84);
+  const w = tag(copy[0], 76, 140 + (1 - q) * -40, size, { sh: 12 });
+  const q2 = E.outExpo(p(t, a + .16, a + .5));
+  if (q2 > 0) {
+    ctx.save();
+    ctx.translate((1 - q2) * -40, 0);
+    ctx.globalAlpha = q2;
+    tag(copy[1], 76, 140 + size * 1.5 + 18, 24, { kind: 'mono', ls: 1, bg: INK, fg: PAPER, sh: 0 });
+    ctx.restore();
+  }
+  return w;
+}
+
+const ACCENT_COLORS = ['#0a84ff', '#5e5ce6', '#bf5af2', '#ff375f', '#ff9f0a', '#30d158', '#40c8e0', '#98989d'];
+function swatches(t, at) {
+  ACCENT_COLORS.forEach((color, i) => {
+    const q = E.outBack(p(t, at + i * .05, at + i * .05 + .3));
+    if (q <= 0) return;
+    ctx.fillStyle = color;
+    ctx.fillRect(1340 + i * 56, 182 + (1 - q) * 30, 46, 46);
+  });
+}
+
+function drawCover(x, y, w, h) {
+  if (!coverSource.complete) return;
+  // the cover as it appears in the app preview
+  const sx = 1438, sy = 339, sw = 912, sh = 513;
+  const scale = Math.max(w / sw, h / sh);
+  const cw = w / scale, ch = h / sh * sh / scale;
+  ctx.drawImage(coverSource, sx + (sw - cw) / 2, sy + (sh - ch) / 2, cw, ch, x, y, w, h);
+}
+
+function fileCard(t, at, x, y, w, h, ext, label, draw) {
+  const q = E.outBack(p(t, at, at + .34));
+  if (q <= 0) return;
+  ctx.save();
+  ctx.translate(0, (1 - q) * 120);
+  ctx.globalAlpha = clamp(q);
+  card(x, y, w, h, { sh: 14 });
+  draw(x + 4, y + 4, w - 8, h - 86);
+  ctx.fillStyle = PAPER; ctx.fillRect(x, y + h - 82, w, 82);
+  text(`.${ext}`, x + 22, y + h - 20, 58, { color: INK });
+  mono(label, x + w - 20, y + h - 30, 20, { color: INK, align: 'right' });
+  ctx.restore();
+}
+
+function sceneFiles(t) {
+  const a = K(23);
+  head(COPY.folder[0], 86, 262, 120, t, a);
+  head(COPY.folder[1], 86, 374, 120, t, K(24), { color: accent });
+  fileCard(t, a + .1, 86, 448, 700, 400, 'MP4', COPY.video, (x, y, w, h) => {
+    drawCover(x, y, w, h);
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.fillRect(x, y, w, h);
+    ctx.fillStyle = PAPER;
+    const cx = x + w / 2, cy = y + h / 2;
+    ctx.beginPath(); ctx.moveTo(cx - 34, cy - 46); ctx.lineTo(cx + 54, cy); ctx.lineTo(cx - 34, cy + 46); ctx.closePath(); ctx.fill();
+  });
+  fileCard(t, K(24), 840, 448, 480, 400, 'JPG', COPY.cover, (x, y, w, h) => drawCover(x, y, w, h));
+  fileCard(t, K(24) + BEAT, 1354, 448, 480, 400, 'TXT', COPY.info, (x, y) => {
+    ctx.fillStyle = INK2; ctx.fillRect(x, y, 472, 314);
+    COPY.infoLines.forEach((line, i) => {
+      mono(line, x + 26, y + 52 + i * 54, 24, { color: i === 0 ? PAPER : MUTE });
+      ctx.fillStyle = 'rgba(243,244,246,.16)'; ctx.fillRect(x + 240, y + 40 + i * 54, 200 - (i * 37) % 90, 10);
+    });
+  });
+}
+
+function sceneUpdates(t) {
+  const a = K(25);
+  head(COPY.updates[0], 86, 340, 170, t, a);
+  head(COPY.updates[1], 86, 490, 170, t, a + .1, { color: accent });
+  COPY.steps.forEach((s, i) => {
+    const at = a + .18 + i * BEAT;
+    const q = E.outExpo(p(t, at, at + .3));
+    if (q <= 0) return;
+    const x = 86 + i * 600, y = 620, w = 540, h = 170;
+    ctx.save();
+    ctx.translate((1 - q) * -60, 0);
+    ctx.globalAlpha = q;
+    card(x, y, w, h, { fill: i === 2 ? accent : INK2, sh: 10, shColor: i === 2 ? PAPER : accent });
+    mono(`0${i + 1}`, x + 24, y + 46, 22, { color: i === 2 ? '#fff' : MUTE });
+    text(s, x + 24, y + 126, fit(s, w - 48, 56), { color: i === 2 ? '#fff' : PAPER });
+    if (i < 2) chevron(x + w + 18, y + h / 2, 18, PAPER);
+    ctx.restore();
+  });
+}
+
+function sceneClimax(t) {
+  const a = K(26);
+  const q = E.inOut(p(t, a, 48.5));
+  const fill = H * q;
+  ctx.fillStyle = accent;
+  ctx.fillRect(0, H - fill, W, fill);
+  const value = Math.floor(progress(t));
+  const size = 620;
+  const x = 960, y = 760;
+  // the number stays readable while the color rises through it
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, 0, W, H - fill); ctx.clip();
+  text(`${value}%`, x, y, size, { align: 'center', color: PAPER });
+  ctx.restore();
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, H - fill, W, fill); ctx.clip();
+  text(`${value}%`, x, y, size, { align: 'center', color: INK });
+  ctx.restore();
+  const i = clamp(Math.floor((t - a) / BEAT), 0, COPY.recap.length - 1);
+  const label = COPY.recap[i];
+  tag(label, 960 - (measure(label, 60) + 50) / 2, 124, 60, { bg: PAPER, fg: INK, sh: 8, shColor: INK });
+}
+
+function sceneDone(t) {
+  const a = 48.74;
+  const q = E.outBack(p(t, a, a + .3));
+  ctx.save();
+  ctx.translate(960, 540);
+  ctx.scale(lerp(1.3, 1, clamp(q)), lerp(1.3, 1, clamp(q)));
+  text(COPY.doneWord, 0, 120, 340, { align: 'center', color: INK });
+  ctx.restore();
+}
+
+function sceneEnd(t) {
+  const a = 49.55;
+  const q = E.outExpo(p(t, a, a + .5));
+  if (logo.complete) ctx.drawImage(logo, 960 - 500, 300 + (1 - q) * -30, 150, 150);
+  text('ENTERLOAD', 960 - 330, 442 + (1 - q) * -30, 170, { alpha: q });
+  head(COPY.free, 960, 520, 54, t, a + .15, { align: 'center', color: MUTE });
+  const on = t >= 51.44 ? true : END_TICKS.some(h => t >= h && t < h + .22) || t < END_TICKS[0];
+  linkField(t, 960 - 620, 590, 1240, 132, 'github.com/Agrysif/Enterload', on, {});
+}
+
+// section, state and the look of each part of the film
+const SCENES = [
+  { a: 0, b: K(1), draw: sceneCold, id: '', state: 'idle' },
+  { a: K(1), b: K(4), draw: sceneInput, id: 'input', state: 'idle' },
+  { a: K(4), b: K(6), draw: sceneAnalyze, id: 'analyze', state: 'analyzing' },
+  { a: K(6), b: K(8), draw: sceneSites, id: 'sources', state: 'analyzing' },
+  { a: K(8), b: K(10), draw: sceneDownload, id: 'download', state: 'downloading' },
+  { a: K(10), b: K(14), draw: scenePause, id: 'pause', state: 'paused' },
+  { a: K(14), b: K(15), draw: sceneHero, id: 'run', state: 'downloading', paper: true },
+  { a: K(15), b: K(16), draw: scene4k, id: 'run', state: 'downloading' },
+  { a: K(16), b: K(17), draw: sceneSound, id: 'run', state: 'downloading' },
+  { a: K(17), b: K(18), draw: sceneFfmpeg, id: 'run', state: 'downloading' },
+  { a: K(18), b: K(19), id: 'interface', state: 'downloading', draw: t => shotScene(t, K(18), [{ name: 'download-active', x: 1200 }], COPY.shots.download) },
+  { a: K(19), b: K(20), id: 'interface', state: 'downloading', draw: t => shotScene(t, K(19), [{ name: 'history', x: 1200, ry: 12 }], COPY.shots.history) },
+  { a: K(20), b: K(21), id: 'interface', state: 'downloading', draw: t => shotScene(t, K(20), [{ name: 'stats', x: 1200 }], COPY.shots.stats) },
+  { a: K(21), b: K(22), id: 'interface', state: 'downloading', draw: t => { shotScene(t, K(21), [
+    { name: 'stats-purple', x: 430, y: 610, scale: .56, ry: 14, rz: -2, shadow: '#bf5af2', sh: 14 },
+    { name: 'history-light', x: 1000, y: 560, scale: .62, ry: 0, rx: 2, z: 40, layer: 5, shadow: BLUE, sh: 14 },
+    { name: 'settings-green', x: 1500, y: 610, scale: .56, ry: -14, rz: 2, shadow: '#30d158', sh: 14 },
+  ], COPY.shots.themes); swatches(t, K(21) + .3); } },
+  { a: K(22), b: K(23), id: 'interface', state: 'downloading', accent: '#ff375f', draw: t => shotScene(t, K(22), [{ name: 'download-site', x: 1200 }], COPY.shots.site) },
+  { a: K(23), b: K(25), draw: sceneFiles, id: 'output', state: 'downloading' },
+  { a: K(25), b: K(26), draw: sceneUpdates, id: 'output', state: 'downloading' },
+  { a: K(26), b: 48.74, draw: sceneClimax, id: 'finish', state: 'downloading', split: t => H * (1 - E.inOut(p(t, K(26), 48.5))) },
+  { a: 48.74, b: 49.55, draw: sceneDone, id: 'finish', state: 'done', paper: true },
+  { a: 49.55, b: DURATION + 1, draw: sceneEnd, id: '', state: 'done' },
+];
+
+const markCtx = $('mark').getContext('2d');
+function mark(id) {
+  for (let i = 0; i < 16; i++) { markCtx.fillStyle = (id >> i) & 1 ? '#fff' : '#000'; markCtx.fillRect(i, 0, 1, 1); }
+}
+
+function render(t, id = 0) {
+  mark(id);
+  t = clamp(t, 0, DURATION);
+  fgCtx.setTransform(1, 0, 0, 1, 0, 0);
+  fgCtx.clearRect(0, 0, W, H);
+  Object.values(slabs).forEach(el => { el.style.display = 'none'; });
+
+  const scene = SCENES.find(s => t >= s.a && t < s.b) || SCENES[SCENES.length - 1];
+  accent = scene.accent || BLUE;
+  if (scene.draw === sceneSites) accent = SITES[siteIndex(t)][1] === PAPER ? BLUE : SITES[siteIndex(t)][1];
+  drawBg(t, scene.paper ? PAPER : INK, scene.paper ? 'rgba(7,8,11,.1)' : 'rgba(243,244,246,.09)');
+
+  // a small kick of the camera on the hits, always with sharp edges
+  const f = Math.floor(t * 60);
+  const shake = hit(t, BIG, 9) * 12;
+  const dx = (hash(f * 3 + 1) - .5) * shake, dy = (hash(f * 3 + 2) - .5) * shake;
+  const camera = `translate(${dx}px, ${dy}px)`;
+  world.style.transform = camera;
+  ctx = fgCtx;
+  ctx.setTransform(1, 0, 0, 1, dx, dy);
+  scene.draw(t);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+  SECTION = scene.id ? `[${String(SECTIONS.indexOf(scene.id) + 1).padStart(2, '0')}] ${COPY[scene.id]}` : '';
+  STATE = scene.state;
+  HUD_INK = !!scene.paper;
+  if (scene.split) {
+    const edge = scene.split(t);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, edge); ctx.clip(); drawHud(t); ctx.restore();
+    HUD_INK = true;
+    ctx.save(); ctx.beginPath(); ctx.rect(0, edge, W, H - edge); ctx.clip(); drawHud(t); ctx.restore();
+  } else if (t >= K(1) * .55 && t < 49.55) drawHud(t);
+
+  CUTS.forEach(c => wipe(t, c, c === K(14) ? BLUE : PAPER));
+
+  // the end: hold on the link, then black
+  if (t > 52.5) { ctx.fillStyle = `rgba(0,0,0,${p(t, 52.5, 52.85)})`; ctx.fillRect(0, 0, W, H); }
+}
+
+window.DURATION = DURATION;
+window.render = render;
+window.ready = (async () => {
+  await document.fonts.load('700 100px Bahnschrift');
+  await document.fonts.load('400 18px "Cascadia Mono"');
+  await document.fonts.ready;
+  const images = [logo, coverSource, ...Object.values(slabs).map(el => el.querySelector('img'))];
+  await Promise.all(images.map(i => i.decode().catch(() => null)));
+  render(0);
+  return true;
+})();
+</script>
+</body>
+</html>

@@ -1,89 +1,82 @@
-# Enterload
+<p align="center">
+  <img src="build/icon.png" width="96" height="96" alt="Enterload">
+</p>
 
-Десктопный загрузчик видео на **Electron + React** с движком **yt-dlp**.
+<h1 align="center">Enterload</h1>
 
-## Возможности
+<p align="center">
+  Paste a link, get the video. A free video downloader for Windows that updates itself.
+</p>
 
-- Анализ ссылки: обложка, название, канал, разрешение, FPS, размер, просмотры, лайки, описание и теги
-- Скачивание в лучшем качестве, 1080p / 720p / 480p / 360p или только аудио (mp3)
-- Встраивание обложки и метаданных в файл, обложка ещё и отдельным `.jpg` рядом с видео
-- Для Pornhub и похожих сайтов — категории, актёры («В ролях») и метка 18+ в превью
-- `.txt` рядом с видео: название, автор, ссылка, дата, описание, категории, актёры и теги
-- Пауза, продолжение (с докачкой) и отмена с удалением временных файлов
-- График скорости во время загрузки, кнопка «Показать в папке» по завершении
-- История с поиском, фильтрами и группировкой по дням, статистика, журнал ошибок
-- Тема «Авто» / светлая / тёмная и акцентный цвет; Mica и системные кнопки окна на Windows 11
-- «Цвет сайта»: пока в поле ссылка YouTube, VK, Rutube, Pornhub, TikTok и т. п., акцент берёт фирменный цвет сайта
-- Ctrl+V в любом месте страницы загрузки вставляет ссылку
-- Обновление yt-dlp прямо из настроек
-- Автообновление приложения через GitHub Releases
-- FFmpeg уже внутри приложения, ничего дополнительно ставить не нужно
+<p align="center">
+  <a href="https://github.com/Agrysif/Enterload/releases/latest"><b>Download for Windows</b></a>
+  ·
+  <a href="README.ru.md">Русская версия</a>
+</p>
 
-## Требования
+<p align="center">
+  <a href="https://github.com/Agrysif/Enterload/releases/download/v1.2.0/Enterload-trailer.mp4"><img src="docs/media/hero.webp" width="100%" alt="Enterload trailer"></a>
+</p>
 
-- Windows 10/11
-- Node.js 20+ (для разработки)
+<p align="center">
+  <a href="https://github.com/Agrysif/Enterload/releases/download/v1.2.0/Enterload-trailer.mp4"><b>▶ Watch the trailer</b></a> · 53 seconds, 1080p
+</p>
 
-## Команды
+## What it does
+
+Paste a link from YouTube, VK, Rutube, TikTok, Twitch, Vimeo or any of the other sites [yt-dlp](https://github.com/yt-dlp/yt-dlp) supports. Enterload shows everything about the video, then downloads it in the quality you pick.
+
+<p align="center">
+  <img src="docs/media/features.webp" width="100%" alt="Up to 4K, MP3, FFmpeg inside">
+</p>
+
+- **Up to 4K**, or 1080p, 720p, 480p, 360p, or just the sound as MP3.
+- **FFmpeg is inside.** Best quality and embedded covers work right after installation.
+- **Pause and resume.** A paused download continues from where it stopped, and a cancelled one cleans up after itself.
+- **Video details before you download**: cover, channel, resolution, frame rate, size, views, categories, cast, tags and description.
+- **Files next to the video**: the cover as `.jpg` and a `.txt` with the title, link, description and tags. Both are optional.
+- **History** with search, filters and days, plus **statistics** on size, length and speed.
+- **Light and dark themes** and 8 accent colors. With **site color** on, the app takes the color of the site in your link.
+- **Automatic updates.** New versions download in the background and install on restart.
+
+<p align="center">
+  <img src="docs/media/screens.webp" width="100%" alt="Download, history, statistics and themes">
+</p>
+
+## Install
+
+Download `Enterload-Setup-x.y.z.exe` from the [latest release](https://github.com/Agrysif/Enterload/releases/latest) and run it. Windows 10 or 11 is required.
+
+Windows may show “Windows protected your PC”. Click “More info”, then “Run anyway”. The app carries our own signature rather than a paid certificate, so Windows doesn't recognize the publisher yet.
+
+`Enterload-x.y.z-portable.exe` runs without installation, but it can't update itself.
+
+The interface is in Russian.
+
+## Support the project
+
+Enterload is free. If it saves you time, you can [say thanks here](https://www.donationalerts.com/r/agrysif).
+
+## Build from source
+
+Requires Node.js 20 or newer.
 
 ```bash
-npm install            # зависимости (заодно скачивает yt-dlp; сам Electron скачается при первом запуске)
-npm run fetch:ffmpeg   # скачать FFmpeg в vendor/ffmpeg (сборка делает это сама)
-npm start              # режим разработки: webpack-dev-server + Electron с hot reload
-npm run preview        # собрать renderer и запустить как в продакшене
-npm run build          # подписанный установщик и portable-версия в папке release/
-npm run build:dir      # только распакованная сборка release/win-unpacked (быстрее)
-npm run release        # то же, что build, плюс публикация в GitHub Releases
-npm run update:yt-dlp  # скачать свежий yt-dlp в node_modules
+npm install
+npm start
 ```
 
-## Структура
+| Command | What it does |
+|---|---|
+| `npm start` | development mode with hot reload |
+| `npm run preview` | builds the interface and runs it like a release |
+| `npm run build` | signed installer and portable version in `release/` |
+| `npm run release` | the same, plus a GitHub release |
 
-```
-src/
-  main.js              — главный процесс: окно, IPC, yt-dlp (метаданные, загрузка, пауза, отмена)
-  preload.js           — безопасный мост window.enterload между интерфейсом и главным процессом
-  renderer/
-    App.jsx            — оболочка: боковая панель, навигация, тема, уведомления, общее состояние
-    hooks.js           — анализ ссылки (useMetadata) и загрузчик (useDownloader)
-    pages/             — экраны: загрузка, история, статистика, ошибки, настройки
-    ui.jsx             — базовые компоненты: Switch, Segmented, Group/Row, Menu, Sheet…
-    HistoryItem.jsx    — строка истории
-    format.js          — форматирование чисел, размеров, дат
-    theme.js           — акцентные цвета и варианты темы
-    charts.js          — регистрация и стиль Chart.js
-    styles.css         — дизайн-система (токены светлой/тёмной темы и все стили)
-build/icon.png         — иконка приложения
-```
+FFmpeg is downloaded into `vendor/ffmpeg` during the build. The signing key stays outside the repository, so builds from a fork need their own key and their own `RELEASE_CERT_THUMBPRINT` in `src/main.js`.
 
-Цвета и размеры — CSS-переменные в начале `styles.css` (`html[data-theme='light' | 'dark']`),
-акцентный цвет задаётся из JS через `--accent`.
+## Credits
 
-## Как выпустить обновление
+Downloads are powered by [yt-dlp](https://github.com/yt-dlp/yt-dlp) and [FFmpeg](https://ffmpeg.org/), see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md). The videos in the trailer are open films by [Blender Studio](https://studio.blender.org/).
 
-1. Поднять версию в `package.json`.
-2. Выполнить `npm run release`. Нужны ключ подписи и токен GitHub, см. ниже.
-
-Приложение проверяет обновления при запуске и раз в 6 часов, скачивает их в фоне и ставит
-при перезапуске. Portable-версия обновляться сама не умеет и предлагает скачать новую.
-
-## Подпись и токен
-
-Ключ подписи лежит вне проекта: `Документы\Enterload-signing` (`enterload-signing.pfx`
-и `signing.json`). **В репозиторий он попадать не должен.** Сделайте его резервную копию:
-приложение принимает только обновления, подписанные этим ключом, и без него уже
-установленные копии обновить автоматически не получится.
-
-Сертификат самоподписанный: он подтверждает, что обновление выпустили мы, но не убирает
-предупреждение Windows SmartScreen. Для этого нужен сертификат доверенного центра.
-
-Для публикации нужен авторизованный GitHub CLI: `vendor/gh/bin/gh.exe` (не в git) или `gh` из `PATH`.
-Токен хранится в хранилище Windows, вводить его не нужно. Переменная `GH_TOKEN` важнее, если задана.
-
-## Где хранятся данные
-
-История, журнал ошибок и настройки — в `%APPDATA%\enterload3\enterload-data.json`.
-Обновлённый из настроек yt-dlp кладётся в `%APPDATA%\enterload3\bin\`.
-
-Для отдельного профиля (например, для тестов) можно задать переменную окружения
-`ENTERLOAD_DATA_DIR`.
+Please download only what you have the right to.
