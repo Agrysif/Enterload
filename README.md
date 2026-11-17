@@ -33,6 +33,10 @@ Paste a link from YouTube, VK, Rutube, TikTok, Twitch, Vimeo or any of the other
 - **Up to 4K**, or 1080p, 720p, 480p, 360p, or just the sound as MP3.
 - **FFmpeg is inside.** Best quality and embedded covers work right after installation.
 - **Pause and resume.** A paused download continues from where it stopped, and a cancelled one cleans up after itself.
+- **Queue.** Paste the next link while a video downloads and it waits its turn.
+- **Playlists and channels.** Pick videos from a playlist or channel with checkboxes and download them in one go.
+- **Fragments.** Save just part of a video, from 1:20 to 3:45 for example.
+- **Speed limit**, so downloads don't slow down games and calls.
 - **Video details before you download**: cover, channel, resolution, frame rate, size, views, categories, cast, tags and description.
 - **Files next to the video**: the cover as `.jpg` and a `.txt` with the title, link, description and tags. Both are optional.
 - **History** with search, filters and days, plus **statistics** on size, length and speed.

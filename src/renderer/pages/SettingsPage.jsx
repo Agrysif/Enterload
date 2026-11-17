@@ -1,17 +1,23 @@
 import React from 'react';
 import {
-  LuBell, LuCpu, LuFilm, LuFolder, LuInfo, LuKeyboard, LuLanguages, LuLoaderCircle, LuPalette, LuRefreshCw, LuSunMoon, LuWandSparkles,
+  LuBell, LuChevronRight, LuCpu, LuFilm, LuFolder, LuGauge, LuInfo, LuKeyboard, LuLanguages, LuLoaderCircle, LuPalette, LuRefreshCw,
+  LuSunMoon, LuWandSparkles,
 } from 'react-icons/lu';
-import { Group, Menu, Row, Segmented, Switch } from '../ui';
+import { BugIcon, Group, Menu, Row, Segmented, Switch } from '../ui';
 import { ACCENTS } from '../theme';
+import { formatSpeed } from '../format';
 import { detectLanguage, LANGUAGES, t } from '../../i18n';
 
+const api = window.enterload;
+
 const THEMES = ['system', 'light', 'dark'];
+// MB/s, the same unit the download speed is shown in
+const SPEED_LIMITS = [0, 1, 2, 5, 10, 20, 50];
 const UPDATE_STATES = ['unsupported', 'idle', 'checking', 'latest', 'available', 'downloading', 'ready', 'error'];
 
 export default function SettingsPage({
   languageChoice, setLanguageChoice, systemLanguages, theme, setTheme, resolvedTheme, accentId, setAccentId, siteAccent, setSiteAccent, activeSite,
-  defaultDownloadPath, downloadsDir, onSelectDefaultPath,
+  defaultDownloadPath, downloadsDir, onSelectDefaultPath, speedLimit, setSpeedLimit,
   notificationsEnabled, setNotificationsEnabled, engine, onUpdateEngine, isDownloading, version, updater,
 }) {
   const updateReady = updater.state === 'ready';
@@ -72,6 +78,14 @@ export default function SettingsPage({
         <Row icon={<LuFolder />} title={t('settings.defaultFolder')} subtitle={<span className="row-path">{defaultDownloadPath || downloadsDir}</span>} onClick={onSelectDefaultPath}>
           <span className="btn btn-plain btn-sm">{t('settings.change')}</span>
         </Row>
+        <Row icon={<LuGauge />} title={t('settings.speedLimit')} subtitle={t('settings.speedLimitHint')}>
+          <Menu
+            value={SPEED_LIMITS.includes(speedLimit) ? speedLimit : 0}
+            options={SPEED_LIMITS.map(value => ({ value, label: value ? formatSpeed(value * 1e6) : t('settings.speedUnlimited') }))}
+            onChange={setSpeedLimit}
+            label={t('settings.speedLimit')}
+          />
+        </Row>
       </Group>
 
       <Group title={t('settings.notifications')}>
@@ -121,6 +135,9 @@ export default function SettingsPage({
           title={t('settings.shortcuts')}
           subtitle={t('settings.shortcutsHint')}
         />
+        <Row icon={<BugIcon />} title={t('app.report')} onClick={() => api.reportBug()}>
+          <LuChevronRight className="row-chevron" />
+        </Row>
       </Group>
     </div>
   );

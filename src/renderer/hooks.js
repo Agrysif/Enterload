@@ -129,11 +129,21 @@ const IDLE = {
   title: '',
 };
 
+// The same link in the same quality and fragment is one download
+const downloadKey = o => [o.url, o.playlistIndex, o.quality, o.section?.start, o.section?.end].join('|');
+
 export function useDownloader({ notify, logError, addHistory }) {
   const [status, setStatus] = useState(IDLE);
   const phaseRef = useRef('idle');
   const ctxRef = useRef(null);
   const meterRef = useRef(newSpeedMeter());
+  // Links added while something downloads wait here and start one after another
+  const [queue, setQueue] = useState([]);
+  const queueRef = useRef([]);
+  const setQueued = useCallback(list => {
+    queueRef.current = list;
+    setQueue(list);
+  }, []);
 
   const go = useCallback((phase, patch = {}) => {
     phaseRef.current = phase;
@@ -160,9 +170,44 @@ export function useDownloader({ notify, logError, addHistory }) {
       saveThumbnail: options.saveThumbnail,
       saveInfo: options.saveInfo,
       downloadPath: options.downloadPath,
+      section: options.section,
+      playlistIndex: options.playlistIndex,
+      durationSeconds: options.info?.durationSeconds,
+      queued: queueRef.current.length,
     });
     if (!res?.ok && phaseRef.current === 'starting') fail(res?.error || t('errors.startFailed'), res?.log);
   }, [go, fail]);
+
+  // Starts right away when nothing downloads, otherwise waits in the queue.
+  // Returns how many downloads were added: a link that already downloads or waits isn't added twice.
+  const enqueue = useCallback(list => {
+    const taken = new Set(queueRef.current.map(downloadKey));
+    if (ACTIVE_PHASES.includes(phaseRef.current) && ctxRef.current) taken.add(downloadKey(ctxRef.current));
+    const fresh = list.filter(o => {
+      const key = downloadKey(o);
+      if (taken.has(key)) return false;
+      taken.add(key);
+      return true;
+    });
+    if (!fresh.length) return 0;
+    if (ACTIVE_PHASES.includes(phaseRef.current)) {
+      setQueued([...queueRef.current, ...fresh]);
+    } else {
+      setQueued([...queueRef.current, ...fresh.slice(1)]);
+      start(fresh[0]);
+    }
+    return fresh.length;
+  }, [start, setQueued]);
+
+  const clearQueue = useCallback(() => setQueued([]), [setQueued]);
+
+  // When a download ends in any way (done, failed, cancelled), the next one starts
+  useEffect(() => {
+    if (ACTIVE_PHASES.includes(status.phase) || !queueRef.current.length) return;
+    const [next, ...rest] = queueRef.current;
+    setQueued(rest);
+    start(next);
+  }, [status.phase, start, setQueued]);
 
   const retry = useCallback(() => ctxRef.current && start(ctxRef.current), [start]);
 
@@ -263,5 +308,7 @@ export function useDownloader({ notify, logError, addHistory }) {
     return () => offs.forEach(off => off());
   }, [go, fail, notify, addHistory]);
 
-  return { status, isActive: ACTIVE_PHASES.includes(status.phase), start, retry, pause, resume, cancel, dismiss };
+  return {
+    status, queue, isActive: ACTIVE_PHASES.includes(status.phase), enqueue, clearQueue, retry, pause, resume, cancel, dismiss,
+  };
 }

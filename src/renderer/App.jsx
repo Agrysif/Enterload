@@ -4,7 +4,7 @@ import {
   LuHeart, LuHistory, LuInfo, LuOctagonAlert, LuSettings, LuTriangleAlert,
 } from 'react-icons/lu';
 import './charts';
-import { IconButton } from './ui';
+import { BugIcon, IconButton } from './ui';
 import { useDownloader, useMetadata, useUpdateEffect, useUpdater } from './hooks';
 import { accentColor, ACCENTS, siteAccentFor } from './theme';
 import { newId } from './format';
@@ -205,6 +205,14 @@ const App = () => {
     persist(key, value);
   }, []);
 
+  // A fragment belongs to one video: another link starts without it
+  const [fragment, setFragment] = useState({ enabled: false, from: '', to: '' });
+  useUpdateEffect(() => setFragment({ enabled: false, from: '', to: '' }), [url]);
+
+  // MB/s, 0 is no limit; the main process applies a change to the running download too
+  const [speedLimit, setSpeedLimit] = useState(Number(persisted.speedLimit) || 0);
+  useUpdateEffect(() => persist('speedLimit', speedLimit), [speedLimit]);
+
   const [defaultDownloadPath, setDefaultDownloadPath] = useState(persisted.defaultDownloadPath || '');
   const [downloadPath, setDownloadPath] = useState(persisted.defaultDownloadPath || boot.downloadsDir || '');
 
@@ -223,6 +231,12 @@ const App = () => {
   const meta = useMetadata(url, { logError, durations: persisted.analysisDurations, onDuration: persistDurations });
   const downloader = useDownloader({ notify, logError, addHistory });
   const updater = useUpdater({ notify });
+
+  // the Windows account picture next to the user name, when there is one
+  const [avatar, setAvatar] = useState(null);
+  useEffect(() => {
+    api.getAccountPicture().then(res => res?.dataUrl && setAvatar(res.dataUrl));
+  }, []);
 
   // ---------------- download engine ----------------
   const [engine, setEngine] = useState({ ytDlpVersion: null, ffmpeg: null, updating: false });
@@ -303,6 +317,8 @@ const App = () => {
         meta={meta}
         options={options}
         setOption={setOption}
+        fragment={fragment}
+        setFragment={setFragment}
         downloadPath={downloadPath}
         onSelectFolder={selectDownloadPath}
         downloader={downloader}
@@ -344,6 +360,8 @@ const App = () => {
         defaultDownloadPath={defaultDownloadPath}
         downloadsDir={boot.downloadsDir}
         onSelectDefaultPath={selectDefaultPath}
+        speedLimit={speedLimit}
+        setSpeedLimit={setSpeedLimit}
         notificationsEnabled={notificationsEnabled}
         setNotificationsEnabled={setNotificationsEnabled}
         engine={engine}
@@ -407,9 +425,13 @@ const App = () => {
             <LuHeart />
             <span>{t('app.support')}</span>
           </button>
+          <button type="button" className="nav-item report" onClick={() => api.reportBug()}>
+            <BugIcon />
+            <span>{t('app.report')}</span>
+          </button>
         </div>
         <div className="sidebar-footer">
-          <span className="avatar">{username[0]}</span>
+          <span className="avatar">{avatar ? <img src={avatar} alt="" /> : username[0]}</span>
           <span className="who">
             <b>{username}</b>
             <small>Enterload {boot.version}</small>

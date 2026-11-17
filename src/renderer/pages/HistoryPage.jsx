@@ -195,7 +195,7 @@ export default function HistoryPage({ history, setHistory, onOpenFolder, onGoDow
       {filtered.length > limit && (
         <div className="load-more">
           <button type="button" className="btn btn-gray" onClick={() => setLimit(l => l + PAGE)}>
-            {t('history.showMore', { count: Math.min(PAGE, filtered.length - limit) })}
+            {t('history.showMore', { more: Math.min(PAGE, filtered.length - limit) })}
           </button>
         </div>
       )}

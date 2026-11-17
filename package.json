@@ -1,6 +1,6 @@
 {
   "name": "enterload3",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Enterload — загрузчик видео на Electron + React + yt-dlp",
   "author": "Егор Балашов",
   "private": true,
@@ -32,6 +32,7 @@
       "src/preload.js",
       "src/i18n.js",
       "src/locales/*.json",
+      "src/bug-report/*",
       "dist/**/*",
       "build/icon.png",
       "package.json"

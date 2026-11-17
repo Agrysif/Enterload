@@ -61,6 +61,15 @@ export const formatClock = sec => {
   return h ? `${h}:${String(m).padStart(2, '0')}:${s}` : `${m}:${s}`;
 };
 
+// typed time back to seconds: "95" → 95, "1:20" → 80, "1:02:05" → 3725; empty → null, a typo → NaN
+export const parseClock = text => {
+  const value = String(text || '').trim().replace(',', '.');
+  if (!value) return null;
+  const parts = value.split(':');
+  const valid = parts.length <= 3 && parts.every((part, i) => /^\d+(\.\d+)?$/.test(part) && (i === 0 || Number(part) < 60));
+  return valid ? parts.reduce((sum, part) => sum * 60 + Number(part), 0) : NaN;
+};
+
 // totals: "2 ч 15 мин", "4 мин", "37 с"
 export const formatSpan = sec => {
   const total = Math.round(sec || 0);

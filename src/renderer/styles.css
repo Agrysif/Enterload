@@ -388,6 +388,24 @@ html.has-material .app {
   fill: currentColor;
 }
 
+/* "Report a problem": a quiet line under "Support the project" */
+.nav-item.report {
+  height: 32px;
+  margin-top: -4px;
+  color: var(--label-2);
+  font-size: 13px;
+  font-weight: 450;
+}
+
+.nav-item.report svg {
+  font-size: 16px;
+  margin: 0 1px;
+}
+
+.nav-item.report:hover {
+  color: var(--label);
+}
+
 .sidebar-footer {
   margin-top: 4px;
   display: flex;
@@ -2127,6 +2145,227 @@ button.chip:hover {
 
 .status-pill.bad::before {
   background: var(--danger);
+}
+
+/* ---------- account picture ---------- */
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ---------- queue ---------- */
+
+.status-queue {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px -18px -14px;
+  padding: 6px 12px 6px 18px;
+  border-top: 1px solid var(--hairline);
+  font-size: 12.5px;
+  color: var(--label-2);
+}
+
+.status-queue svg {
+  flex-shrink: 0;
+  font-size: 15px;
+}
+
+.status-queue span {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- fragment ---------- */
+
+.fragment-row {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.fragment-fields {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 40px;
+}
+
+.time-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--label-2);
+  font-size: 13px;
+}
+
+.time-field input {
+  width: 84px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  outline: none;
+  background: var(--fill-2);
+  color: var(--label);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.time-field input::placeholder {
+  color: var(--label-3);
+}
+
+.time-field input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.fragment-dash {
+  color: var(--label-3);
+}
+
+.fragment-error {
+  flex-basis: 100%;
+  margin-left: 40px;
+  font-size: 12.5px;
+  color: var(--danger);
+}
+
+/* ---------- playlist ---------- */
+
+.playlist-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 4px 4px 0;
+}
+
+.playlist-icon {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 24px;
+}
+
+.playlist-heading {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.playlist-heading > span {
+  color: var(--label-2);
+  font-size: 13px;
+}
+
+.playlist-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 4px 0;
+  font-size: 13px;
+  color: var(--label-2);
+}
+
+.playlist-note {
+  margin: 4px 4px 0;
+  font-size: 12.5px;
+  color: var(--label-2);
+}
+
+.playlist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 10px;
+}
+
+.playlist-list input[type='checkbox'] {
+  flex-shrink: 0;
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.playlist-section,
+.playlist-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.playlist-section:hover,
+.playlist-item:hover {
+  background: var(--fill-2);
+}
+
+.playlist-section {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.playlist-section b {
+  font-weight: 600;
+}
+
+.playlist-section small {
+  color: var(--label-2);
+}
+
+.playlist-thumb {
+  position: relative;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--fill-2);
+  color: var(--label-3);
+}
+
+.playlist-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.playlist-thumb .thumb-badge {
+  right: 4px;
+  bottom: 4px;
+  padding: 0 4px;
+  border-radius: 4px;
+  font-size: 10.5px;
+}
+
+.playlist-title {
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 13.5px;
+  line-height: 1.3;
 }
 
 @media (prefers-reduced-motion: reduce) {

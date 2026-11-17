@@ -2,6 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { LuCheck, LuChevronsUpDown, LuX } from 'react-icons/lu';
 import { t } from '../i18n';
 
+// The same bug icon as in the other apps of the author, drawn like the react-icons set (1em, 2px stroke)
+export const BugIcon = () => (
+  <svg viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="m8 2 1.9 1.9M16 2l-1.9 1.9M9 7.1V6a3 3 0 0 1 6 0v1.1" />
+    <path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6Zm0 0v-9M6.5 13H3m18 0h-3.5M6 9.5 3 8m15 1.5L21 8M6 17l-3 1.5m15-1.5 3 1.5" />
+  </svg>
+);
+
 export const Switch = ({ checked, onChange, label }) => (
   <button
     type="button"
@@ -61,8 +69,10 @@ export const Row = ({ icon, title, subtitle, children, onClick, hint }) => {
       {children != null && <span className="row-accessory">{children}</span>}
     </>
   );
+  // A hint (e.g. a full folder path) stays a tooltip, the button is named by its title:
+  // the "Report a problem" log records clicks by name and must not get the path
   return onClick
-    ? <button type="button" className={className} onClick={onClick} title={hint}>{content}</button>
+    ? <button type="button" className={className} onClick={onClick} title={hint} aria-label={hint && typeof title === 'string' ? title : undefined}>{content}</button>
     : <div className={className} title={hint}>{content}</div>;
 };
 

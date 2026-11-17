@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('enterload', {
   },
   setTheme: theme => ipcRenderer.send('set-theme', theme),
   setLanguage: code => ipcRenderer.send('set-language', code),
+  getAccountPicture: () => ipcRenderer.invoke('account-picture'),
 
   getEngineInfo: () => ipcRenderer.invoke('engine-info'),
   updateEngine: () => ipcRenderer.invoke('engine-update'),
@@ -30,6 +31,8 @@ contextBridge.exposeInMainWorld('enterload', {
   readClipboardText: () => ipcRenderer.invoke('read-clipboard-text'),
   copyText: text => ipcRenderer.invoke('copy-text', text),
   copyImage: url => ipcRenderer.invoke('copy-image', url),
+  // "Report a problem" window (src/bug-report)
+  reportBug: () => ipcRenderer.send('bug-report:open'),
 
   on: (event, callback) => {
     if (!EVENTS.includes(event)) throw new Error(`Unknown event: ${event}`);
